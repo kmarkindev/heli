@@ -3,13 +3,13 @@
 using UnrealBuildTool;
 using System.Collections.Generic;
 
-public class heliEditorTarget : TargetRules
+public class HeliEditorTarget : TargetRules
 {
-	public heliEditorTarget( TargetInfo Target) : base(Target)
+	public HeliEditorTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Editor;
 		DefaultBuildSettings = BuildSettingsVersion.V2;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_1;
-		ExtraModuleNames.Add("heli");
+		ExtraModuleNames.Add("Heli");
 	}
 }

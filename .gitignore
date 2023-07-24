@@ -20,3 +20,4 @@ Plugins/*/Binaries/*
 *.sdf
 *.VC.db
 *.VC.opendb
+.vsconfig

@@ -2,9 +2,9 @@
 
 using UnrealBuildTool;
 
-public class heli : ModuleRules
+public class Heli : ModuleRules
 {
-	public heli(ReadOnlyTargetRules Target) : base(Target)
+	public Heli(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	

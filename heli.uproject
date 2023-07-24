@@ -5,7 +5,7 @@
 	"Description": "",
 	"Modules": [
 		{
-			"Name": "heli",
+			"Name": "Heli",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
 		}
