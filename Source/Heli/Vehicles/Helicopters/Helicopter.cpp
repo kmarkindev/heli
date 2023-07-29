@@ -2,13 +2,10 @@
 
 
 #include "Helicopter.h"
-#include "HelicopterMovementComponent.h"
 
 AHelicopter::AHelicopter()
 {
 	PrimaryActorTick.bCanEverTick = true;
-
-	HelicopterMovementComponent = CreateDefaultSubobject<UHelicopterMovementComponent>(TEXT("HelicopterMovementComponent"));
 }
 
 void AHelicopter::BeginPlay()

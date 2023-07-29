@@ -33,17 +33,17 @@ struct FRotationData
 	GENERATED_BODY()
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float PitchSpeed { 0.f };
+	float PitchSpeed { 5.f };
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float RollSpeed { 0.f };
+	float RollSpeed { 5.f };
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float YawSpeed { 0.f };
+	float YawSpeed { 5.f };
 	
 };
 
-UCLASS(Blueprintable, meta=(BlueprintSpawnableComponent))
+UCLASS(Blueprintable, Blueprintable, meta=(BlueprintSpawnableComponent))
 class HELI_API UHelicopterMovementComponent : public UActorComponent
 {
 	GENERATED_BODY()

@@ -6,8 +6,6 @@
 #include "GameFramework/Pawn.h"
 #include "Helicopter.generated.h"
 
-class UHelicopterMovementComponent;
-
 UCLASS(Blueprintable)
 class HELI_API AHelicopter : public APawn
 {
@@ -18,9 +16,6 @@ public:
 	AHelicopter();
 
 protected:
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TObjectPtr<UHelicopterMovementComponent> HelicopterMovementComponent {};
 	
 	virtual void BeginPlay() override;
 
