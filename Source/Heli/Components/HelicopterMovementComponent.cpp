@@ -53,7 +53,7 @@ void UHelicopterMovementComponent::AddRotation(float PitchIntensity, float YawIn
 		RotationData.YawSpeed * YawIntensity * DeltaTime,
 		RotationData.RollSpeed * RollIntensity * DeltaTime
 	};
-
+	
 	GetOwner()->AddActorLocalRotation(Rotator, true);
 }
 
