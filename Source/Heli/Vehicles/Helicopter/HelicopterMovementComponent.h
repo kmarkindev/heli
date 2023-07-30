@@ -15,7 +15,7 @@ struct FCollocationData
 	float MinCollocationAcceleration { 5.f * 100.f };
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float MaxCollocationAcceleration { 16.f * 100.f };
+	float MaxCollocationAcceleration { 14.f * 100.f };
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float CurrentCollocation { 0.f };
@@ -33,13 +33,13 @@ struct FRotationData
 	GENERATED_BODY()
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float PitchSpeed { 5.f };
+	float PitchSpeed { 35.f };
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float RollSpeed { 5.f };
+	float RollSpeed { 30.f };
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float YawSpeed { 5.f };
+	float YawSpeed { 25.f };
 	
 };
 
@@ -74,7 +74,7 @@ protected:
 	FVector Velocity {};
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float DecelerationRate { 0.4f };
+	float DecelerationRate { 0.7f };
 
 	UPROPERTY(EditAnywhere)
 	FCollocationData CollocationData {};

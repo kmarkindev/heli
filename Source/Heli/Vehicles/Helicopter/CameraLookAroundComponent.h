@@ -22,8 +22,8 @@ protected:
 
 	virtual void BeginPlay() override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bIsEnabled { false };
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	bool bIsLookAroundEnabled { false };
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float YawLimit { 90.f };
@@ -47,7 +47,10 @@ public:
 	void SetLookAngles(float Pitch, float Yaw);
 
 	UFUNCTION(BlueprintCallable)
-	void SetIsEnabled(bool bEnable);
+	bool IsLookAroundEnabled() const;
+
+	UFUNCTION(BlueprintCallable)
+	void SetIsLookAroundEnabled(bool bEnable);
 	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 

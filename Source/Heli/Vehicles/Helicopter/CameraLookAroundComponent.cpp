@@ -29,7 +29,7 @@ void UCameraLookAroundComponent::InitializeComponent()
 
 void UCameraLookAroundComponent::AddLookAround(float X, float Y)
 {
-	if(!bIsEnabled)
+	if(!bIsLookAroundEnabled)
 		return;
 	
 	CurrentYaw = UKismetMathLibrary::FClamp(CurrentYaw + X, -YawLimit, YawLimit);
@@ -38,16 +38,21 @@ void UCameraLookAroundComponent::AddLookAround(float X, float Y)
 
 void UCameraLookAroundComponent::SetLookAngles(float Pitch, float Yaw)
 {
-	if(!bIsEnabled)
+	if(!bIsLookAroundEnabled)
 		return;
 	
 	CurrentYaw = UKismetMathLibrary::FClamp(Yaw, -YawLimit, YawLimit);
 	CurrentPitch = UKismetMathLibrary::FClamp(Pitch, -PitchLimit, PitchLimit);
 }
 
-void UCameraLookAroundComponent::SetIsEnabled(bool bEnable)
+bool UCameraLookAroundComponent::IsLookAroundEnabled() const
 {
-	bIsEnabled = bEnable;
+	return bIsLookAroundEnabled;
+}
+
+void UCameraLookAroundComponent::SetIsLookAroundEnabled(bool bEnable)
+{
+	bIsLookAroundEnabled = bEnable;
 	
 	if(!bEnable)
 	{
@@ -70,7 +75,7 @@ void UCameraLookAroundComponent::UpdateControlRotation(float DeltaTime)
 
 	FRotator Rotator = OwnerPawn->GetActorRotation();
 
-	if(bIsEnabled)
+	if(bIsLookAroundEnabled)
 	{
 		FVector ActorUp = OwnerPawn->GetActorUpVector();
 		FVector ActorRight = OwnerPawn->GetActorRightVector();
