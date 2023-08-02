@@ -126,6 +126,8 @@ private:
 	float CalculateAccelerationAmountBasedOnCollocation() const;
 	FVector CalculateCurrentCollocationAccelerationVector() const;
 
+	void ApplyScaleToResult(FVector& InOutResult, const FVector& DeltaToApply);
+	
 	void ApplyAccelerationsToVelocity(float DeltaTime);
 	void ApplyAccelerationScaleAlongVector(FVector& BaseAcceleration, float Scale, const FVector& ScaleDirection);
 

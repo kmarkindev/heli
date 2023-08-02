@@ -69,6 +69,16 @@ FVector UHelicopterMovementComponent::CalculateCurrentCollocationAccelerationVec
 	return UpVector * CurrentCollocationAccelerationAmount;
 }
 
+void UHelicopterMovementComponent::ApplyScaleToResult(FVector& InOutResult, const FVector& DeltaToApply)
+{
+	// We do this since InOutResult axis might be negative together with DeltaToApply axis
+	// in this case instead of scaling down or up, it will only scale it up exponentially
+	
+	InOutResult.X += InOutResult.X > 0  ? DeltaToApply.X : -DeltaToApply.X;
+	InOutResult.Y += InOutResult.Y > 0  ? DeltaToApply.Y : -DeltaToApply.Y;
+	InOutResult.Z += InOutResult.Z > 0  ? DeltaToApply.Z : -DeltaToApply.Z;
+}
+
 void UHelicopterMovementComponent::ApplyAccelerationsToVelocity(float DeltaTime)
 {
 	FVector CollocationAcceleration = CalculateCurrentCollocationAccelerationVector();
@@ -128,7 +138,7 @@ void UHelicopterMovementComponent::ApplyAccelerationScaleAlongVector(FVector& Ba
 
 	// Add scaled acceleration
 	const FVector AccelerationDelta = ScaledAccelerationAlongDirection - BaseAccelerationAlongDirection;
-	BaseAcceleration += AccelerationDelta;
+	ApplyScaleToResult(BaseAcceleration, AccelerationDelta);
 }
 
 void UHelicopterMovementComponent::ApplyDampingToVelocity(float DeltaTime)
@@ -163,7 +173,7 @@ void UHelicopterMovementComponent::ApplyDampingAlongVector(float DeltaTime, floa
 {
 	// Find velocity along direction
 	FVector BaseDirectionVelocity = PhysicsData.Velocity * DampingDirectionNormalized;
-
+	
 	// Do not damp negative velocity for the same reason as for acceleration
 	BaseDirectionVelocity.X = FMath::Max(BaseDirectionVelocity.X, 0.f);
 	BaseDirectionVelocity.Y = FMath::Max(BaseDirectionVelocity.Y, 0.f);
@@ -174,7 +184,7 @@ void UHelicopterMovementComponent::ApplyDampingAlongVector(float DeltaTime, floa
 
 	// Add damped velocity
 	const FVector VelocityDelta = DampedDirectionVelocity - BaseDirectionVelocity;
-	PhysicsData.Velocity += VelocityDelta;
+	ApplyScaleToResult(PhysicsData.Velocity, VelocityDelta);
 }
 
 void UHelicopterMovementComponent::ApplyVelocityToLocation(float DeltaTime, FVector& OutOldLocation, FVector& OutNewLocation)
