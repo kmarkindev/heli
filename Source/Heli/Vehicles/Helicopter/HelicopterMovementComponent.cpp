@@ -83,12 +83,14 @@ void UHelicopterMovementComponent::ApplyAccelerationsToVelocity(float DeltaTime)
 {
 	FVector CollocationAcceleration = CalculateCurrentCollocationAccelerationVector();
 
+	const float CruiseAccelerationScale = CalculateCruiseAccelerationScale();
+	
 	// Apply acceleration scales for each side
 
 	// Forward
 	const FVector ForwardVector = GetOwner()->GetActorForwardVector();
 	ApplyAccelerationScaleAlongVector(CollocationAcceleration,
-		PhysicsData.ForwardAccelerationScale, ForwardVector);
+		PhysicsData.ForwardAccelerationScale * CruiseAccelerationScale, ForwardVector);
 
 	// Backward
 	const FVector BackwardVector = -ForwardVector;
@@ -201,6 +203,23 @@ void UHelicopterMovementComponent::RecalculateVelocityBasedOnTraveledDistance(fl
 {
 	// Correct velocity based on actual traveled distance in case of any collision or any other outer factors
 	PhysicsData.Velocity = (NewLocation - OldLocation) / DeltaTime;
+}
+
+float UHelicopterMovementComponent::CalculateHorizontalVelocity() const
+{
+	FVector HorizontalVelocity = PhysicsData.Velocity;
+	HorizontalVelocity.Z = 0.f;
+
+	return HorizontalVelocity.Length();
+}
+
+float UHelicopterMovementComponent::CalculateCruiseAccelerationScale() const
+{
+	const float HorizontalVelocity = CalculateHorizontalVelocity();
+	
+	return HorizontalVelocity >= PhysicsData.MinVelocityToEnterCruise
+		? 1.0f
+		: PhysicsData.AccelerationScaleBeforeCruise;
 }
 
 void UHelicopterMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

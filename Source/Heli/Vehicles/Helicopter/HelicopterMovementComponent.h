@@ -47,6 +47,12 @@ struct FPhysicsData
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FVector GravityAcceleration { 0.f, 0.f, -9.8f * 100.f};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Cruise")
+	float AccelerationScaleBeforeCruise { 0.5f };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Cruise")
+	float MinVelocityToEnterCruise { 11.f * 100.f };
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Deceleration")
 	float UpDecelerationRate { 0.7f };
@@ -137,5 +143,8 @@ private:
 	void ApplyVelocityToLocation(float DeltaTime, FVector& OutOldLocation, FVector& OutNewLocation);
 
 	void RecalculateVelocityBasedOnTraveledDistance(float DeltaTime, const FVector& OldLocation, const FVector& NewLocation);
+
+	float CalculateHorizontalVelocity() const;
+	float CalculateCruiseAccelerationScale() const;
 	
 };
