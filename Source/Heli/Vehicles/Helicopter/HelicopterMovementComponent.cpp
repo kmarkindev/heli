@@ -16,14 +16,18 @@ void UHelicopterMovementComponent::BeginPlay()
 	Super::BeginPlay();
 }
 
+float UHelicopterMovementComponent::CalculateAccelerationAmountBasedOnCollocation() const
+{
+	return UKismetMathLibrary::Lerp(
+		PhysicsData.MinCollocationAcceleration,
+		PhysicsData.MaxCollocationAcceleration,
+		CollocationData.CurrentCollocation
+	);
+}
+
 void UHelicopterMovementComponent::SetCollocation(float NewCollocation)
 {
 	CollocationData.CurrentCollocation = UKismetMathLibrary::FClamp(NewCollocation, 0.0, 1.0);
-}
-
-float UHelicopterMovementComponent::GetCollocation() const
-{
-	return CollocationData.CurrentCollocation;
 }
 
 void UHelicopterMovementComponent::IncreaseCollocation()
@@ -57,37 +61,150 @@ void UHelicopterMovementComponent::AddRotation(float PitchIntensity, float YawIn
 	GetOwner()->AddActorLocalRotation(Rotator, true);
 }
 
+FVector UHelicopterMovementComponent::CalculateCurrentCollocationAccelerationVector() const
+{
+	const FVector UpVector = GetOwner()->GetActorUpVector();
+	const float CurrentCollocationAccelerationAmount = CalculateAccelerationAmountBasedOnCollocation();
+
+	return UpVector * CurrentCollocationAccelerationAmount;
+}
+
+void UHelicopterMovementComponent::ApplyAccelerationsToVelocity(float DeltaTime)
+{
+	FVector CollocationAcceleration = CalculateCurrentCollocationAccelerationVector();
+
+	// Apply acceleration scales for each side
+
+	// Forward
+	const FVector ForwardVector = GetOwner()->GetActorForwardVector();
+	ApplyAccelerationScaleAlongVector(CollocationAcceleration,
+		PhysicsData.ForwardAccelerationScale, ForwardVector);
+
+	// Backward
+	const FVector BackwardVector = -ForwardVector;
+	ApplyAccelerationScaleAlongVector(CollocationAcceleration,
+		PhysicsData.BackwardAccelerationScale, BackwardVector);
+
+	// Up
+	const FVector UpVector = GetOwner()->GetActorUpVector();
+	ApplyAccelerationScaleAlongVector(CollocationAcceleration,
+		PhysicsData.UpAccelerationScale, UpVector);
+
+	// Down
+	const FVector DownVector = -UpVector;
+	ApplyAccelerationScaleAlongVector(CollocationAcceleration,
+		PhysicsData.DownAccelerationScale, DownVector);
+
+	// Right
+	const FVector RightVector = GetOwner()->GetActorRightVector();
+	ApplyAccelerationScaleAlongVector(CollocationAcceleration,
+		PhysicsData.SideAccelerationScale, RightVector);
+	
+	// Left
+	const FVector LeftVector = -RightVector;
+	ApplyAccelerationScaleAlongVector(CollocationAcceleration,
+		PhysicsData.SideAccelerationScale, LeftVector);
+
+	// Finally apply acceleration
+	PhysicsData.Velocity += (PhysicsData.GravityAcceleration + CollocationAcceleration) * DeltaTime;
+}
+
+void UHelicopterMovementComponent::ApplyAccelerationScaleAlongVector(FVector& BaseAcceleration, float Scale,
+	const FVector& ScaleDirectionNormalized)
+{
+	// Get acceleration along forward vector
+	FVector BaseAccelerationAlongDirection = BaseAcceleration * ScaleDirectionNormalized;
+
+	// We don't want to scale negative acceleration
+	// e.g. when applying forward and backward acceleration scales,
+	// without this we will scale both forward and backward accelerations,
+	// by applying both forward and backward scales to same acceleration
+	BaseAccelerationAlongDirection.X = FMath::Max(BaseAccelerationAlongDirection.X, 0.f);
+	BaseAccelerationAlongDirection.Y = FMath::Max(BaseAccelerationAlongDirection.Y, 0.f);
+	BaseAccelerationAlongDirection.Z = FMath::Max(BaseAccelerationAlongDirection.Z, 0.f);
+
+	// Scale it
+	const FVector ScaledAccelerationAlongDirection = BaseAccelerationAlongDirection * Scale;
+
+	// Add scaled acceleration
+	const FVector AccelerationDelta = ScaledAccelerationAlongDirection - BaseAccelerationAlongDirection;
+	BaseAcceleration += AccelerationDelta;
+}
+
+void UHelicopterMovementComponent::ApplyDampingToVelocity(float DeltaTime)
+{
+	// Forward
+	const FVector ForwardVector = GetOwner()->GetActorForwardVector();
+	ApplyDampingAlongVector(DeltaTime, PhysicsData.ForwardDecelerationRate, ForwardVector);
+
+	// Backward
+	const FVector BackwardVector = -ForwardVector;
+	ApplyDampingAlongVector(DeltaTime, PhysicsData.BackwardDecelerationRate, BackwardVector);
+
+	// Up
+	const FVector UpVector = GetOwner()->GetActorUpVector();
+	ApplyDampingAlongVector(DeltaTime, PhysicsData.UpDecelerationRate, UpVector);
+
+	// Down
+	const FVector DownVector = -UpVector;
+	ApplyDampingAlongVector(DeltaTime, PhysicsData.DownDecelerationRate, DownVector);
+
+	// Right
+	const FVector RightVector = GetOwner()->GetActorRightVector();
+	ApplyDampingAlongVector(DeltaTime, PhysicsData.SideDecelerationRate, RightVector);
+	
+	// Left
+	const FVector LeftVector = -RightVector;
+	ApplyDampingAlongVector(DeltaTime, PhysicsData.SideDecelerationRate, LeftVector);
+}
+
+void UHelicopterMovementComponent::ApplyDampingAlongVector(float DeltaTime, float DampingRate,
+	const FVector& DampingDirectionNormalized)
+{
+	// Find velocity along direction
+	FVector BaseDirectionVelocity = PhysicsData.Velocity * DampingDirectionNormalized;
+
+	// Do not damp negative velocity for the same reason as for acceleration
+	BaseDirectionVelocity.X = FMath::Max(BaseDirectionVelocity.X, 0.f);
+	BaseDirectionVelocity.Y = FMath::Max(BaseDirectionVelocity.Y, 0.f);
+	BaseDirectionVelocity.Z = FMath::Max(BaseDirectionVelocity.Z, 0.f);
+	
+	// damp it
+	const FVector DampedDirectionVelocity = BaseDirectionVelocity * FMath::Pow(DampingRate, DeltaTime);
+
+	// Add damped velocity
+	const FVector VelocityDelta = DampedDirectionVelocity - BaseDirectionVelocity;
+	PhysicsData.Velocity += VelocityDelta;
+}
+
+void UHelicopterMovementComponent::ApplyVelocityToLocation(float DeltaTime, FVector& OutOldLocation, FVector& OutNewLocation)
+{
+	OutOldLocation = GetOwner()->GetActorLocation();
+	
+	GetOwner()->AddActorWorldOffset(PhysicsData.Velocity * DeltaTime, true);
+
+	OutNewLocation = GetOwner()->GetActorLocation();
+}
+
+void UHelicopterMovementComponent::RecalculateVelocityBasedOnTraveledDistance(float DeltaTime,
+	const FVector& OldLocation, const FVector& NewLocation)
+{
+	// Correct velocity based on actual traveled distance in case of any collision or any other outer factors
+	PhysicsData.Velocity = (NewLocation - OldLocation) / DeltaTime;
+}
+
 void UHelicopterMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	
-	FVector UpVector = GetOwner()->GetActorUpVector();
+	ApplyAccelerationsToVelocity(DeltaTime);
 	
-	FVector GravityVector = {0.f, 0.f, -1.f};
-	float GravityAcceleration = 9.8f * 100.f;
+	ApplyDampingToVelocity(DeltaTime);
 
-	float CurrentCollocationAcceleration = UKismetMathLibrary::Lerp(
-		CollocationData.MinCollocationAcceleration,
-		CollocationData.MaxCollocationAcceleration,
-		CollocationData.CurrentCollocation
-	);
+	FVector OldLocation {};
+	FVector NewLocation {};
+	ApplyVelocityToLocation(DeltaTime, OldLocation, NewLocation);
 
-	FVector GravityAccelerationVector = GravityVector * GravityAcceleration;
-	FVector CollocationAccelerationVector = UpVector * CurrentCollocationAcceleration;
-
-	// Apply accelerations
-	Velocity += (GravityAccelerationVector + CollocationAccelerationVector) * DeltaTime;
-
-	// Apply damping
-	Velocity *= FMath::Pow(DecelerationRate, DeltaTime);
-
-	FVector OldLocation = GetOwner()->GetActorLocation();
-	
-	GetOwner()->AddActorWorldOffset(Velocity * DeltaTime, true);
-
-	// Correct velocity based on actual traveled distance
-	// in case of any collision
-	FVector NewLocation = GetOwner()->GetActorLocation();
-	Velocity = (NewLocation - OldLocation) / DeltaTime;
+	RecalculateVelocityBasedOnTraveledDistance(DeltaTime, OldLocation, NewLocation);
 }
 

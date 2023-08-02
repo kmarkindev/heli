@@ -89,13 +89,4 @@ void UCameraLookAroundComponent::UpdateControlRotation(float DeltaTime)
 	}
 
 	OwnerPawn->Controller->SetControlRotation(Rotator);
-	
-	// // Create local rotation (local for actor)
-	// FRotator LocalRotation {CurrentPitch, CurrentYaw, 0.f};
-	//
-	// // Transform rotation from actor local space to world space
-	// FTransform InversedOwnerTransform = OwnerPawn->GetActorTransform().Inverse();
-	// FRotator FinalRotation = UKismetMathLibrary::InverseTransformRotation(InversedOwnerTransform, LocalRotation);
-	//
-	// 
 }

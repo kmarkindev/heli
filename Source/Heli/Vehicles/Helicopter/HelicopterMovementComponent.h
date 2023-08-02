@@ -10,12 +10,6 @@ USTRUCT(BlueprintType)
 struct FCollocationData
 {
 	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float MinCollocationAcceleration { 5.f * 100.f };
-	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float MaxCollocationAcceleration { 14.f * 100.f };
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float CurrentCollocation { 0.f };
@@ -43,6 +37,55 @@ struct FRotationData
 	
 };
 
+USTRUCT(BlueprintType)
+struct FPhysicsData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
+	FVector Velocity {};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FVector GravityAcceleration { 0.f, 0.f, -9.8f * 100.f};
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Deceleration")
+	float UpDecelerationRate { 0.7f };
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Deceleration")
+	float DownDecelerationRate { 0.7f };
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Deceleration")
+	float ForwardDecelerationRate { 0.85f };
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Deceleration")
+	float BackwardDecelerationRate { 0.85f };
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Deceleration")
+	float SideDecelerationRate { 0.75f };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration")
+	float MaxCollocationAcceleration { 16.f * 100.f };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration")
+	float MinCollocationAcceleration { 5.f * 100.f };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration|Scale")
+	float UpAccelerationScale { 1.0f };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration|Scale")
+	float DownAccelerationScale { 1.0f };
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration|Scale")
+	float ForwardAccelerationScale { 1.0f };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration|Scale")
+	float BackwardAccelerationScale { 1.0f };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration|Scale")
+	float SideAccelerationScale { 1.0f };
+	
+};
+
 UCLASS(Blueprintable, Blueprintable, meta=(BlueprintSpawnableComponent))
 class HELI_API UHelicopterMovementComponent : public UActorComponent
 {
@@ -53,9 +96,6 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetCollocation(float NewCollocation);
-
-	UFUNCTION(BlueprintCallable)
-	float GetCollocation() const;
 
 	UFUNCTION(BlueprintCallable)
 	void IncreaseCollocation();
@@ -70,18 +110,30 @@ public:
 
 protected:
 
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
-	FVector Velocity {};
+	UPROPERTY(BlueprintReadOnly, EditAnywhere)
+	FPhysicsData PhysicsData {};
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float DecelerationRate { 0.7f };
-
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(BlueprintReadOnly, EditAnywhere)
 	FCollocationData CollocationData {};
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(BlueprintReadOnly, EditAnywhere)
 	FRotationData RotationData {};
 	
 	virtual void BeginPlay() override;
+
+private:
+
+	float CalculateAccelerationAmountBasedOnCollocation() const;
+	FVector CalculateCurrentCollocationAccelerationVector() const;
+
+	void ApplyAccelerationsToVelocity(float DeltaTime);
+	void ApplyAccelerationScaleAlongVector(FVector& BaseAcceleration, float Scale, const FVector& ScaleDirection);
+
+	void ApplyDampingToVelocity(float DeltaTime);
+	void ApplyDampingAlongVector(float DeltaTime, float DampingRate, const FVector& DampingDirection);
+
+	void ApplyVelocityToLocation(float DeltaTime, FVector& OutOldLocation, FVector& OutNewLocation);
+
+	void RecalculateVelocityBasedOnTraveledDistance(float DeltaTime, const FVector& OldLocation, const FVector& NewLocation);
 	
 };
