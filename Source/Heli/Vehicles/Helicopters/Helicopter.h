@@ -17,6 +17,10 @@ class HELI_API AHelicopter : public APawn
 	GENERATED_BODY()
 
 public:
+
+	inline static FName HelicopterMeshComponentName { TEXT("HelicopterMeshComponent") };
+	inline static FName HelicopterMovementComponentName { TEXT("HelicopterMovementComponent") };
+	inline static FName CameraLookAroundComponentName { TEXT("CameraLookAroundComponent") };
 	
 	AHelicopter();
 	

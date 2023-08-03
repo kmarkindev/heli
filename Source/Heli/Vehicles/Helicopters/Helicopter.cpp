@@ -12,15 +12,15 @@ AHelicopter::AHelicopter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	HelicopterMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("HelicopterMesh"));
+	HelicopterMesh = CreateDefaultSubobject<USkeletalMeshComponent>(HelicopterMeshComponentName);
 	SetRootComponent(HelicopterMesh);
 
 	CameraSpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComponent"));
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->SetupAttachment(CameraSpringArmComponent, USpringArmComponent::SocketName);
 
-	HelicopterMovementComponent = CreateDefaultSubobject<UHelicopterMovementComponent>(TEXT("HelicopterMovementComponent"));
-	CameraLookAroundComponent = CreateDefaultSubobject<UCameraLookAroundComponent>(TEXT("CameraLookAroundComponent"));
+	HelicopterMovementComponent = CreateDefaultSubobject<UHelicopterMovementComponent>(HelicopterMovementComponentName);
+	CameraLookAroundComponent = CreateDefaultSubobject<UCameraLookAroundComponent>(CameraLookAroundComponentName);
 }
 
 void AHelicopter::BeginPlay()
