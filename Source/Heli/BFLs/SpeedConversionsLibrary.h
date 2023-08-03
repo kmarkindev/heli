@@ -18,15 +18,15 @@ class HELI_API USpeedConversionsLibrary : public UBlueprintFunctionLibrary
 
 public:
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, BlueprintPure)
 	static float KmhToCms(float Kmh);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, BlueprintPure)
 	static float CmsToKnots(float Cms);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, BlueprintPure)
 	static float MsToCms(float Kms);
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, BlueprintPure)
 	static float CmsToKmh(float Cms);
 };

@@ -44,7 +44,7 @@ struct FPhysicsData
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float MaxSpeed { USpeedConversionsLibrary::KmhToCms(250.f) };
+	float MaxSpeed { USpeedConversionsLibrary::KmhToCms(260.f) };
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration")
 	float MaxCollocationAcceleration { USpeedConversionsLibrary::MsToCms(16.f) };
@@ -52,6 +52,35 @@ struct FPhysicsData
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration")
 	float MinCollocationAcceleration { USpeedConversionsLibrary::MsToCms(5.f) };
 	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration|Scale|Up")
+	TObjectPtr<UCurveFloat> UpAccelerationScale {};
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration|Scale|Up")
+	float UpAccelerationScaleDefault { 1.f };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration|Scale|Down")
+	TObjectPtr<UCurveFloat> DownAccelerationScale {};
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration|Scale|Down")
+	float DownAccelerationScaleDefault { 1.f };
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration|Scale|Forward")
+	TObjectPtr<UCurveFloat> ForwardAccelerationScale {};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration|Scale|Forward")
+	float ForwardAccelerationScaleDefault { 1.2f };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration|Scale|Backward")
+	TObjectPtr<UCurveFloat> BackwardAccelerationScale {};
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration|Scale|Backward")
+	float BackwardAccelerationScaleDefault { 0.7f };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration|Scale|Side")
+	TObjectPtr<UCurveFloat> SideAccelerationScale {};
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration|Scale|Side")
+	float SideAccelerationScaleDefault { 0.8f };
 };
 
 UCLASS(Blueprintable, Blueprintable, meta=(BlueprintSpawnableComponent))
@@ -94,6 +123,13 @@ private:
 	float CalculateAccelerationAmountBasedOnCollocation() const;
 	FVector CalculateCurrentCollocationAccelerationVector() const;
 
-	void ApplyLinearMovement(float DeltaTime);
+	void ApplyAccelerationsToVelocity(float DeltaTime);
+	void ApplyAccelerationScaleAlongVector(FVector& BaseAcceleration, const UCurveFloat* ScaleCurve,
+		float DefaultScale, const FVector& ScaleDirectionNormalized);
+	void ApplyScaleToResult(FVector& InOutResult, const FVector& DeltaToApply);
+	
+	FVector GetHorizontalForwardVector() const;
+	FVector GetHorizontalRightVector() const;
+	FVector GetVerticalUpVector() const;
 	
 };

@@ -34,10 +34,14 @@ protected:
 	UPROPERTY()
 	TObjectPtr<APawn> OwnerPawn {};
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float CurrentPitch { 0.f };
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float CurrentYaw { 0.f };
 	
 public:
+	
 	virtual void InitializeComponent() override;
 
 	UFUNCTION(BlueprintCallable)

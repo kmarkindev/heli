@@ -6,6 +6,11 @@
 #include "GameFramework/Pawn.h"
 #include "Helicopter.generated.h"
 
+class UCameraLookAroundComponent;
+class UCameraComponent;
+class USpringArmComponent;
+class UHelicopterMovementComponent;
+
 UCLASS(Blueprintable)
 class HELI_API AHelicopter : public APawn
 {
@@ -14,14 +19,36 @@ class HELI_API AHelicopter : public APawn
 public:
 	
 	AHelicopter();
+	
+	virtual void Tick(float DeltaTime) override;
+
+	virtual void PostInitializeComponents() override;
 
 protected:
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TObjectPtr<USkeletalMeshComponent> HelicopterMesh {};
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UHelicopterMovementComponent> HelicopterMovementComponent {};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TObjectPtr<UCameraLookAroundComponent> CameraLookAroundComponent {};
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+	TObjectPtr<USpringArmComponent> CameraSpringArmComponent {};
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+	TObjectPtr<UCameraComponent> CameraComponent {};
 	
 	virtual void BeginPlay() override;
 
-public:
 	
-	virtual void Tick(float DeltaTime) override;
 	
-	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+private:
+
+	void ConfigHelicopterMesh();
+
+	void ConfigSpringArmAndCamera();
+	
 };
