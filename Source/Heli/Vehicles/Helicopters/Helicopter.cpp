@@ -4,6 +4,7 @@
 #include "Helicopter.h"
 
 #include "HelicopterMovementComponent.h"
+#include "HelicopterRootMeshComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Heli/LogHeli.h"
@@ -12,15 +13,28 @@
 AHelicopter::AHelicopter()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.TickGroup = TG_PrePhysics;
+	PrimaryActorTick.EndTickGroup = TG_PrePhysics;
 
-	HelicopterMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(HelicopterMeshComponentName);
+	HelicopterMeshComponent = CreateDefaultSubobject<UHelicopterRootMeshComponent>(HelicopterMeshComponentName);
 	SetRootComponent(HelicopterMeshComponent);
 	
 	HelicopterMovementComponent = CreateDefaultSubobject<UHelicopterMovementComponent>(HelicopterMovementComponentName);
+	
 	CameraLookAroundComponent = CreateDefaultSubobject<UCameraLookAroundComponent>(CameraLookAroundComponentName);
 	
 	CameraSpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(SpringArmComponentName);
-	CameraSpringArmComponent->SetupAttachment(RootComponent);
+
+	if(HelicopterMeshComponent->DoesSocketExist(UHelicopterRootMeshComponent::HelicopterMeshSkeletonCameraSocketName))
+	{
+		CameraSpringArmComponent
+			->SetupAttachment(RootComponent, UHelicopterRootMeshComponent::HelicopterMeshSkeletonCameraSocketName);
+	}
+	else
+	{
+		HELI_ERR("Can't attach camera spring arm since helicopter mesh doesn't have a socket to do that");
+	}
+	
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(CameraComponentName);
 	CameraComponent->SetupAttachment(CameraSpringArmComponent, USpringArmComponent::SocketName);
 }

@@ -10,6 +10,9 @@ UCameraLookAroundComponent::UCameraLookAroundComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	bWantsInitializeComponent = true;
+
+	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
+	PrimaryComponentTick.EndTickGroup = TG_DuringPhysics;
 }
 
 void UCameraLookAroundComponent::BeginPlay()

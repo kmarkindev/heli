@@ -9,6 +9,8 @@
 UHelicopterMovementComponent::UHelicopterMovementComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
+	PrimaryComponentTick.EndTickGroup = TG_DuringPhysics;
 }
 
 void UHelicopterMovementComponent::BeginPlay()

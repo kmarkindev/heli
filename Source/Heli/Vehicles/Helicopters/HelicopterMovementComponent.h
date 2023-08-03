@@ -83,7 +83,11 @@ struct FPhysicsData
 	float SideAccelerationScaleDefault { 0.8f };
 };
 
-UCLASS(Blueprintable, Blueprintable, meta=(BlueprintSpawnableComponent))
+UCLASS(
+	Blueprintable,
+	HideCategories=(ComponentReplication, Replication, ComponentTick),
+	meta=(BlueprintSpawnableComponent)
+)
 class HELI_API UHelicopterMovementComponent : public UActorComponent
 {
 	GENERATED_BODY()

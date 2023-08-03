@@ -6,12 +6,13 @@
 #include "GameFramework/Pawn.h"
 #include "Helicopter.generated.h"
 
+class UHelicopterRootMeshComponent;
 class UCameraLookAroundComponent;
 class UCameraComponent;
 class USpringArmComponent;
 class UHelicopterMovementComponent;
 
-UCLASS(Blueprintable)
+UCLASS(Blueprintable, HideCategories=(ComponentReplication, Replication, ActorTick))
 class HELI_API AHelicopter : public APawn
 {
 	GENERATED_BODY()
@@ -32,14 +33,14 @@ public:
 
 protected:
 
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY()
 	TObjectPtr<USpringArmComponent> CameraSpringArmComponent {};
 
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY()
 	TObjectPtr<UCameraComponent> CameraComponent {};
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TObjectPtr<USkeletalMeshComponent> HelicopterMeshComponent {};
+	TObjectPtr<UHelicopterRootMeshComponent> HelicopterMeshComponent {};
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UHelicopterMovementComponent> HelicopterMovementComponent {};

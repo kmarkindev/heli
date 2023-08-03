@@ -10,7 +10,12 @@
 class USpringArmComponent;
 class UCameraComponent;
 
-UCLASS(ClassGroup=(Custom), Blueprintable, meta=(BlueprintSpawnableComponent))
+UCLASS(
+	ClassGroup=(Custom),
+	Blueprintable,
+	meta=(BlueprintSpawnableComponent),
+	HideCategories=(ComponentReplication, Replication, ComponentTick)
+)
 class HELI_API UCameraLookAroundComponent : public UActorComponent
 {
 	GENERATED_BODY()
