@@ -3,6 +3,7 @@
 
 #include "HelicopterMovementComponent.h"
 
+#include "Heli/LogHeli.h"
 #include "Kismet/KismetMathLibrary.h"
 
 UHelicopterMovementComponent::UHelicopterMovementComponent()
@@ -31,14 +32,14 @@ void UHelicopterMovementComponent::SetCollocation(float NewCollocation)
 
 void UHelicopterMovementComponent::IncreaseCollocation()
 {
-	float DeltaTime = GetWorld()->DeltaTimeSeconds;
+	const float DeltaTime = GetWorld()->DeltaTimeSeconds;
 	
 	SetCollocation(CollocationData.CurrentCollocation + DeltaTime * CollocationData.CollocationIncreaseSpeed);
 }
 
 void UHelicopterMovementComponent::DecreaseCollocation()
 {
-	float DeltaTime = GetWorld()->DeltaTimeSeconds;
+	const float DeltaTime = GetWorld()->DeltaTimeSeconds;
 
 	SetCollocation(CollocationData.CurrentCollocation - DeltaTime * CollocationData.CollocationDecreaseSpeed);
 }
@@ -49,7 +50,7 @@ void UHelicopterMovementComponent::AddRotation(float PitchIntensity, float YawIn
 	RollIntensity = UKismetMathLibrary::FClamp(RollIntensity, -1.0, 1.0);
 	YawIntensity = UKismetMathLibrary::FClamp(YawIntensity, -1.0, 1.0);
 
-	float DeltaTime = GetWorld()->DeltaTimeSeconds;
+	const float DeltaTime = GetWorld()->DeltaTimeSeconds;
 	
 	FRotator Rotator {
 		RotationData.PitchSpeed * PitchIntensity * DeltaTime,
@@ -145,7 +146,7 @@ void UHelicopterMovementComponent::ApplyAccelerationsToVelocity(float DeltaTime)
 		LeftVector
 	);
 	
-	UPrimitiveComponent* RootComponent = Cast<UPrimitiveComponent>(GetOwner()->GetRootComponent());
+	UPrimitiveComponent* const RootComponent = GetRootPrimitiveComponent();
 
 	FVector LinearVelocity = RootComponent->GetPhysicsLinearVelocity();
 	
@@ -203,4 +204,17 @@ FVector UHelicopterMovementComponent::GetHorizontalRightVector() const
 FVector UHelicopterMovementComponent::GetVerticalUpVector() const
 {
 	return {0.f, 0.f, 1.f};
+}
+
+UPrimitiveComponent* UHelicopterMovementComponent::GetRootPrimitiveComponent() const
+{
+	UPrimitiveComponent* const RootComponent = Cast<UPrimitiveComponent>(GetOwner()->GetRootComponent());
+
+	if(!RootComponent)
+	{
+		HELI_ERR("Can't get root component since it's not primitive component type");
+		return nullptr;
+	}
+
+	return RootComponent;
 }

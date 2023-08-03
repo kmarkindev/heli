@@ -3,4 +3,4 @@
 #include "Heli.h"
 #include "Modules/ModuleManager.h"
 
-IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, Heli, "Heli" );
+IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, Heli, "Heli");

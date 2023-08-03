@@ -21,6 +21,8 @@ public:
 	inline static FName HelicopterMeshComponentName { TEXT("HelicopterMeshComponent") };
 	inline static FName HelicopterMovementComponentName { TEXT("HelicopterMovementComponent") };
 	inline static FName CameraLookAroundComponentName { TEXT("CameraLookAroundComponent") };
+	inline static FName SpringArmComponentName { TEXT("SpringArmComponent") };
+	inline static FName CameraComponentName { TEXT("CameraComponent") };
 	
 	AHelicopter();
 	
@@ -30,29 +32,27 @@ public:
 
 protected:
 
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+	TObjectPtr<USpringArmComponent> CameraSpringArmComponent {};
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
+	TObjectPtr<UCameraComponent> CameraComponent {};
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TObjectPtr<USkeletalMeshComponent> HelicopterMesh {};
+	TObjectPtr<USkeletalMeshComponent> HelicopterMeshComponent {};
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UHelicopterMovementComponent> HelicopterMovementComponent {};
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TObjectPtr<UCameraLookAroundComponent> CameraLookAroundComponent {};
-
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	TObjectPtr<USpringArmComponent> CameraSpringArmComponent {};
-
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly)
-	TObjectPtr<UCameraComponent> CameraComponent {};
 	
 	virtual void BeginPlay() override;
-
-	
 	
 private:
 
 	void ConfigHelicopterMesh();
 
-	void ConfigSpringArmAndCamera();
+	void ConfigCameraAndSpringArm();
 	
 };

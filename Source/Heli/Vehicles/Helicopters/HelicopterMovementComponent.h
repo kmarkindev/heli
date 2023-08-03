@@ -131,5 +131,7 @@ private:
 	FVector GetHorizontalForwardVector() const;
 	FVector GetHorizontalRightVector() const;
 	FVector GetVerticalUpVector() const;
+
+	UPrimitiveComponent* GetRootPrimitiveComponent() const;
 	
 };

@@ -8,6 +8,7 @@
 
 
 class USpringArmComponent;
+class UCameraComponent;
 
 UCLASS(ClassGroup=(Custom), Blueprintable, meta=(BlueprintSpawnableComponent))
 class HELI_API UCameraLookAroundComponent : public UActorComponent
@@ -15,13 +16,13 @@ class HELI_API UCameraLookAroundComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
-
+	
 	UCameraLookAroundComponent();
 
 protected:
 
 	virtual void BeginPlay() override;
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	bool bIsLookAroundEnabled { false };
 
@@ -30,7 +31,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float PitchLimit { 90.f };
-
+	
 	UPROPERTY()
 	TObjectPtr<APawn> OwnerPawn {};
 
@@ -45,10 +46,10 @@ public:
 	virtual void InitializeComponent() override;
 
 	UFUNCTION(BlueprintCallable)
-	void AddLookAround(float X, float Y);
+	void AddLookAround(float Yaw, float Pitch);
 
 	UFUNCTION(BlueprintCallable)
-	void SetLookAngles(float Pitch, float Yaw);
+	void SetLookAngles(float Yaw, float Pitch);
 
 	UFUNCTION(BlueprintCallable)
 	bool IsLookAroundEnabled() const;
@@ -60,6 +61,6 @@ public:
 
 private:
 
-	void UpdateControlRotation(float DeltaTime);
+	void UpdateControlRotation();
 	
 };

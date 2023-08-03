@@ -3,24 +3,26 @@
 
 #include "Helicopter.h"
 
-#include "CameraLookAroundComponent.h"
 #include "HelicopterMovementComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Heli/LogHeli.h"
+#include "Heli/Components/CameraLookAroundComponent.h"
 
 AHelicopter::AHelicopter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	HelicopterMesh = CreateDefaultSubobject<USkeletalMeshComponent>(HelicopterMeshComponentName);
-	SetRootComponent(HelicopterMesh);
-
-	CameraSpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComponent"));
-	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
-	CameraComponent->SetupAttachment(CameraSpringArmComponent, USpringArmComponent::SocketName);
-
+	HelicopterMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(HelicopterMeshComponentName);
+	SetRootComponent(HelicopterMeshComponent);
+	
 	HelicopterMovementComponent = CreateDefaultSubobject<UHelicopterMovementComponent>(HelicopterMovementComponentName);
 	CameraLookAroundComponent = CreateDefaultSubobject<UCameraLookAroundComponent>(CameraLookAroundComponentName);
+	
+	CameraSpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(SpringArmComponentName);
+	CameraSpringArmComponent->SetupAttachment(RootComponent);
+	CameraComponent = CreateDefaultSubobject<UCameraComponent>(CameraComponentName);
+	CameraComponent->SetupAttachment(CameraSpringArmComponent, USpringArmComponent::SocketName);
 }
 
 void AHelicopter::BeginPlay()
@@ -30,29 +32,18 @@ void AHelicopter::BeginPlay()
 
 void AHelicopter::ConfigHelicopterMesh()
 {
-	HelicopterMesh->SetSimulatePhysics(true);
-	HelicopterMesh->SetEnableGravity(true);
-
-	HelicopterMesh->SetLinearDamping(0.2f);
-	HelicopterMesh->SetAngularDamping(1.f);
-
-	HelicopterMesh->SetCollisionProfileName("BlockAll", false);
-}
-
-void AHelicopter::ConfigSpringArmAndCamera()
-{
-	CameraSpringArmComponent->bUsePawnControlRotation = true;
-	CameraSpringArmComponent->bInheritPitch = true;
-	CameraSpringArmComponent->bInheritRoll = true;
-	CameraSpringArmComponent->bInheritYaw = true;
-
-	CameraSpringArmComponent->TargetArmLength = 0.f;
-	
-	CameraSpringArmComponent->bEnableCameraLag = false;
-	CameraSpringArmComponent->bEnableCameraRotationLag = true;
-	CameraSpringArmComponent->CameraRotationLagSpeed = 15.f;
-
-	CameraComponent->SetFieldOfView(120.f);
+	if(HelicopterMeshComponent && HelicopterMeshComponent->CanEditSimulatePhysics())
+	{
+		HelicopterMeshComponent->SetLinearDamping(0.2f);
+		HelicopterMeshComponent->SetAngularDamping(1.f);
+		HelicopterMeshComponent->SetCollisionProfileName("BlockAll", false);
+		
+		HelicopterMeshComponent->SetSimulatePhysics(true);
+	}
+	else
+	{
+		HELI_ERR("Can't initialize helicopter %s because it has no skeletal mesh or physics asset", *GetName());
+	}
 }
 
 void AHelicopter::Tick(float DeltaTime)
@@ -65,7 +56,29 @@ void AHelicopter::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 	ConfigHelicopterMesh();
-
-	ConfigSpringArmAndCamera();
+	ConfigCameraAndSpringArm();
 }
 
+void AHelicopter::ConfigCameraAndSpringArm()
+{
+	if(!CameraSpringArmComponent || !CameraComponent)
+	{
+		HELI_ERR("Can't initialize camera and spring arm, some of them are null");
+		return;
+	}
+	
+	CameraSpringArmComponent->bUsePawnControlRotation = true;
+	CameraSpringArmComponent->bInheritPitch = true;
+	CameraSpringArmComponent->bInheritRoll = true;
+	CameraSpringArmComponent->bInheritYaw = true;
+
+	CameraSpringArmComponent->TargetArmLength = 0.f;
+
+	CameraSpringArmComponent->bDoCollisionTest = false;
+	
+	CameraSpringArmComponent->bEnableCameraLag = false;
+	CameraSpringArmComponent->bEnableCameraRotationLag = true;
+	CameraSpringArmComponent->CameraRotationLagSpeed = 15.f;
+
+	CameraComponent->SetFieldOfView(120.f);
+}
