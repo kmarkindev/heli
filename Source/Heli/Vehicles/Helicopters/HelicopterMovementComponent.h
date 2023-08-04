@@ -8,18 +8,18 @@
 #include "HelicopterMovementComponent.generated.h"
 
 USTRUCT(BlueprintType)
-struct FCollocationData
+struct FCollectiveData
 {
 	GENERATED_BODY()
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float CurrentCollocation { 0.f };
+	float CurrentCollective { 0.f };
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float CollocationIncreaseSpeed { 0.75f };
+	float CollectiveIncreaseSpeed { 0.75f };
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float CollocationDecreaseSpeed { 0.75f };
+	float CollectiveDecreaseSpeed { 0.75f };
 };
 
 USTRUCT(BlueprintType)
@@ -47,10 +47,10 @@ struct FPhysicsData
 	float MaxSpeed { USpeedConversionsLibrary::KmhToCms(260.f) };
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration")
-	float MaxCollocationAcceleration { USpeedConversionsLibrary::MsToCms(16.f) };
+	float MaxCollectiveAcceleration { USpeedConversionsLibrary::MsToCms(16.f) };
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration")
-	float MinCollocationAcceleration { USpeedConversionsLibrary::MsToCms(5.f) };
+	float MinCollectiveAcceleration { USpeedConversionsLibrary::MsToCms(5.f) };
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration|Scale|Up")
 	TObjectPtr<UCurveFloat> UpAccelerationScale {};
@@ -96,13 +96,13 @@ public:
 	UHelicopterMovementComponent();
 
 	UFUNCTION(BlueprintCallable)
-	void SetCollocation(float NewCollocation);
+	void SetCollective(float NewCollocation);
 
 	UFUNCTION(BlueprintCallable)
-	void IncreaseCollocation();
+	void IncreaseCollective();
 
 	UFUNCTION(BlueprintCallable)
-	void DecreaseCollocation();
+	void DecreaseCollective();
 	
 	UFUNCTION(BlueprintCallable)
 	void AddRotation(float PitchIntensity, float YawIntensity, float RollIntensity);
@@ -115,7 +115,7 @@ protected:
 	FPhysicsData PhysicsData {};
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
-	FCollocationData CollocationData {};
+	FCollectiveData CollectiveData {};
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
 	FRotationData RotationData {};
@@ -124,8 +124,8 @@ protected:
 
 private:
 	
-	float CalculateAccelerationAmountBasedOnCollocation() const;
-	FVector CalculateCurrentCollocationAccelerationVector() const;
+	float CalculateAccelerationAmountBasedOnCollective() const;
+	FVector CalculateCurrentCollectiveAccelerationVector() const;
 
 	void ApplyAccelerationsToVelocity(float DeltaTime);
 	void ApplyAccelerationScaleAlongVector(FVector& BaseAcceleration, const UCurveFloat* ScaleCurve,

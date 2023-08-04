@@ -18,32 +18,32 @@ void UHelicopterMovementComponent::BeginPlay()
 	Super::BeginPlay();
 }
 
-float UHelicopterMovementComponent::CalculateAccelerationAmountBasedOnCollocation() const
+float UHelicopterMovementComponent::CalculateAccelerationAmountBasedOnCollective() const
 {
 	return UKismetMathLibrary::Lerp(
-		PhysicsData.MinCollocationAcceleration,
-		PhysicsData.MaxCollocationAcceleration,
-		CollocationData.CurrentCollocation
+		PhysicsData.MinCollectiveAcceleration,
+		PhysicsData.MaxCollectiveAcceleration,
+		CollectiveData.CurrentCollective
 	);
 }
 
-void UHelicopterMovementComponent::SetCollocation(float NewCollocation)
+void UHelicopterMovementComponent::SetCollective(float NewCollocation)
 {
-	CollocationData.CurrentCollocation = UKismetMathLibrary::FClamp(NewCollocation, 0.0, 1.0);
+	CollectiveData.CurrentCollective = UKismetMathLibrary::FClamp(NewCollocation, 0.0, 1.0);
 }
 
-void UHelicopterMovementComponent::IncreaseCollocation()
+void UHelicopterMovementComponent::IncreaseCollective()
 {
 	const float DeltaTime = GetWorld()->DeltaTimeSeconds;
 	
-	SetCollocation(CollocationData.CurrentCollocation + DeltaTime * CollocationData.CollocationIncreaseSpeed);
+	SetCollective(CollectiveData.CurrentCollective + DeltaTime * CollectiveData.CollectiveIncreaseSpeed);
 }
 
-void UHelicopterMovementComponent::DecreaseCollocation()
+void UHelicopterMovementComponent::DecreaseCollective()
 {
 	const float DeltaTime = GetWorld()->DeltaTimeSeconds;
 
-	SetCollocation(CollocationData.CurrentCollocation - DeltaTime * CollocationData.CollocationDecreaseSpeed);
+	SetCollective(CollectiveData.CurrentCollective - DeltaTime * CollectiveData.CollectiveDecreaseSpeed);
 }
 
 void UHelicopterMovementComponent::AddRotation(float PitchIntensity, float YawIntensity, float RollIntensity)
@@ -60,13 +60,13 @@ void UHelicopterMovementComponent::AddRotation(float PitchIntensity, float YawIn
 		RotationData.RollSpeed * RollIntensity * DeltaTime
 	};
 	
-	GetOwner()->AddActorLocalRotation(Rotator, true);
+	GetOwner()->AddActorLocalRotation(Rotator, true, nullptr, ETeleportType::TeleportPhysics);
 }
 
-FVector UHelicopterMovementComponent::CalculateCurrentCollocationAccelerationVector() const
+FVector UHelicopterMovementComponent::CalculateCurrentCollectiveAccelerationVector() const
 {
 	const FVector UpVector = GetOwner()->GetActorUpVector();
-	const float CurrentCollocationAccelerationAmount = CalculateAccelerationAmountBasedOnCollocation();
+	const float CurrentCollocationAccelerationAmount = CalculateAccelerationAmountBasedOnCollective();
 
 	return UpVector * CurrentCollocationAccelerationAmount;
 }
@@ -90,7 +90,7 @@ void UHelicopterMovementComponent::ApplyScaleToResult(FVector& InOutResult, cons
 
 void UHelicopterMovementComponent::ApplyAccelerationsToVelocity(float DeltaTime)
 {
-	FVector CollocationAcceleration = CalculateCurrentCollocationAccelerationVector();
+	FVector CollocationAcceleration = CalculateCurrentCollectiveAccelerationVector();
 	
 	// Apply acceleration scales for each side
 

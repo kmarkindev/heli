@@ -32,6 +32,7 @@ AHelicopter::AHelicopter()
 	}
 	else
 	{
+		CameraSpringArmComponent->SetupAttachment(RootComponent);
 		HELI_ERR("Can't attach camera spring arm since helicopter mesh doesn't have a socket to do that");
 	}
 	
