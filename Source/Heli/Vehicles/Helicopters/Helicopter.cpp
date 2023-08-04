@@ -47,13 +47,10 @@ void AHelicopter::BeginPlay()
 
 void AHelicopter::ConfigHelicopterMesh()
 {
-	if(HelicopterMeshComponent && HelicopterMeshComponent->CanEditSimulatePhysics())
+	if(HelicopterMeshComponent)
 	{
-		HelicopterMeshComponent->SetLinearDamping(0.2f);
-		HelicopterMeshComponent->SetAngularDamping(1.f);
-		HelicopterMeshComponent->SetCollisionProfileName("BlockAll", false);
-		
-		HelicopterMeshComponent->SetSimulatePhysics(true);
+		HelicopterMeshComponent->SetCollisionProfileName("Pawn", false);
+		HelicopterMeshComponent->SetSimulatePhysics(false);
 	}
 	else
 	{
@@ -72,6 +69,14 @@ void AHelicopter::PostInitializeComponents()
 
 	ConfigHelicopterMesh();
 	ConfigCameraAndSpringArm();
+}
+
+FVector AHelicopter::GetVelocity() const
+{
+	// Base Pawn::GetVelocity searches for UPawnMovement->Velocity or takes component vel only when physics sim enabled,
+	// but we want to get velocity from component in both cases: with and without physics sim enabled
+	
+	return GetRootComponent()->GetComponentVelocity();
 }
 
 void AHelicopter::ConfigCameraAndSpringArm()

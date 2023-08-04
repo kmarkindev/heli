@@ -9,8 +9,15 @@
 UHelicopterMovementComponent::UHelicopterMovementComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
-	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
-	PrimaryComponentTick.EndTickGroup = TG_DuringPhysics;
+	PrimaryComponentTick.TickGroup = TG_PrePhysics;
+	PrimaryComponentTick.EndTickGroup = TG_PrePhysics;
+	
+	bUpdateOnlyIfRendered = false;
+	bAutoUpdateTickRegistration = true;
+	bTickBeforeOwner = true;
+	bAutoRegisterUpdatedComponent = true;
+	bConstrainToPlane = false;
+	bSnapToPlaneAtStart = false;
 }
 
 void UHelicopterMovementComponent::BeginPlay()
@@ -75,7 +82,17 @@ void UHelicopterMovementComponent::TickComponent(float DeltaTime, ELevelTick Tic
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	ApplyAccelerationsToVelocity(DeltaTime);
+	UpdateVelocity(DeltaTime);
+}
+
+float UHelicopterMovementComponent::GetGravityZ() const
+{
+	return PhysicsData.GravityZ;
+}
+
+float UHelicopterMovementComponent::GetMaxSpeed() const
+{
+	return PhysicsData.MaxSpeed;
 }
 
 void UHelicopterMovementComponent::ApplyScaleToResult(FVector& InOutResult, const FVector& DeltaToApply)
@@ -88,6 +105,77 @@ void UHelicopterMovementComponent::ApplyScaleToResult(FVector& InOutResult, cons
 	InOutResult.Z += InOutResult.Z > 0  ? DeltaToApply.Z : -DeltaToApply.Z;
 }
 
+void UHelicopterMovementComponent::ApplyVelocityDamping(float DeltaTime)
+{
+	Velocity *= FMath::Pow(0.8f, DeltaTime);
+}
+
+void UHelicopterMovementComponent::ClampVelocityToMaxSpeed()
+{
+	const float MaxSpeed = GetMaxSpeed();
+	
+	if(IsExceedingMaxSpeed(MaxSpeed) == true)
+	{
+		Velocity = Velocity.GetUnsafeNormal() * MaxSpeed;
+	}
+}
+
+void UHelicopterMovementComponent::ApplyVelocityToLocation(float DeltaTime)
+{
+	// Remember old location before move
+	const FVector OldLocation = UpdatedComponent->GetComponentLocation();
+
+	// Find values to use during move
+	const FVector DeltaMove = Velocity * DeltaTime;
+	const FQuat Rotation = UpdatedComponent->GetComponentQuat();
+
+	if (DeltaMove.IsNearlyZero(1e-6f))
+	{
+		return;
+	}
+	
+	// Perform move with collision test
+	FHitResult Hit {};
+	SafeMoveUpdatedComponent(DeltaMove, Rotation, true, Hit);
+	
+	// React on collision if any
+	if (Hit.IsValidBlockingHit())
+	{
+		// react on collision if needed
+		HandleImpact(Hit, DeltaTime, DeltaMove);
+		
+		// then try to slide the remaining distance along the surface
+		SlideAlongSurface(DeltaMove, 1.f - Hit.Time, Hit.Normal, Hit, true);
+	}
+	
+	// safe new location after collision
+	const FVector NewLocation = UpdatedComponent->GetComponentLocation();
+
+	Velocity = (NewLocation - OldLocation) / DeltaTime;
+}
+
+void UHelicopterMovementComponent::UpdateVelocity(float DeltaTime)
+{
+	ApplyGravityToVelocity(DeltaTime);
+	
+	ApplyAccelerationsToVelocity(DeltaTime);
+
+	ApplyVelocityDamping(DeltaTime);
+	
+	ClampVelocityToMaxSpeed();
+
+	ApplyVelocityToLocation(DeltaTime);
+
+	UpdateComponentVelocity();
+}
+
+void UHelicopterMovementComponent::ApplyGravityToVelocity(float DeltaTime)
+{
+	const FVector GravityAcceleration { 0.f, 0.f, GetGravityZ() };
+
+	Velocity += GravityAcceleration * DeltaTime;
+}
+
 void UHelicopterMovementComponent::ApplyAccelerationsToVelocity(float DeltaTime)
 {
 	FVector CollocationAcceleration = CalculateCurrentCollectiveAccelerationVector();
@@ -98,8 +186,8 @@ void UHelicopterMovementComponent::ApplyAccelerationsToVelocity(float DeltaTime)
 	const FVector ForwardVector = GetHorizontalForwardVector();
 	ApplyAccelerationScaleAlongVector(
 		CollocationAcceleration,
-		PhysicsData.ForwardAccelerationScale,
-		PhysicsData.ForwardAccelerationScaleDefault,
+		AccelerationScales.ForwardAccelerationScale,
+		AccelerationScales.ForwardAccelerationScaleDefault,
 		ForwardVector
 	);
 
@@ -107,8 +195,8 @@ void UHelicopterMovementComponent::ApplyAccelerationsToVelocity(float DeltaTime)
 	const FVector BackwardVector = -ForwardVector;
 	ApplyAccelerationScaleAlongVector(
 		CollocationAcceleration,
-		PhysicsData.BackwardAccelerationScale,
-		PhysicsData.BackwardAccelerationScaleDefault,
+		AccelerationScales.BackwardAccelerationScale,
+		AccelerationScales.BackwardAccelerationScaleDefault,
 		BackwardVector
 	);
 
@@ -116,8 +204,8 @@ void UHelicopterMovementComponent::ApplyAccelerationsToVelocity(float DeltaTime)
 	const FVector UpVector = GetVerticalUpVector();
 	ApplyAccelerationScaleAlongVector(
 		CollocationAcceleration,
-		PhysicsData.UpAccelerationScale,
-		PhysicsData.UpAccelerationScaleDefault,
+		AccelerationScales.UpAccelerationScale,
+		AccelerationScales.UpAccelerationScaleDefault,
 		UpVector
 	);
 
@@ -125,8 +213,8 @@ void UHelicopterMovementComponent::ApplyAccelerationsToVelocity(float DeltaTime)
 	const FVector DownVector = -UpVector;
 	ApplyAccelerationScaleAlongVector(
 		CollocationAcceleration,
-		PhysicsData.DownAccelerationScale,
-		PhysicsData.DownAccelerationScaleDefault,
+		AccelerationScales.DownAccelerationScale,
+		AccelerationScales.DownAccelerationScaleDefault,
 		DownVector
 	);
 
@@ -134,8 +222,8 @@ void UHelicopterMovementComponent::ApplyAccelerationsToVelocity(float DeltaTime)
 	const FVector RightVector = GetHorizontalRightVector();
 	ApplyAccelerationScaleAlongVector(
 		CollocationAcceleration,
-		PhysicsData.SideAccelerationScale,
-		PhysicsData.SideAccelerationScaleDefault,
+		AccelerationScales.SideAccelerationScale,
+		AccelerationScales.SideAccelerationScaleDefault,
 		RightVector
 	);
 	
@@ -143,19 +231,12 @@ void UHelicopterMovementComponent::ApplyAccelerationsToVelocity(float DeltaTime)
 	const FVector LeftVector = -RightVector;
 	ApplyAccelerationScaleAlongVector(
 		CollocationAcceleration,
-		PhysicsData.SideAccelerationScale,
-		PhysicsData.SideAccelerationScaleDefault,
+		AccelerationScales.SideAccelerationScale,
+		AccelerationScales.SideAccelerationScaleDefault,
 		LeftVector
 	);
 	
-	UPrimitiveComponent* const RootComponent = GetRootPrimitiveComponent();
-
-	FVector LinearVelocity = RootComponent->GetPhysicsLinearVelocity();
-	
-	LinearVelocity += CollocationAcceleration * DeltaTime;
-	LinearVelocity = LinearVelocity.GetClampedToMaxSize(PhysicsData.MaxSpeed);
-	
-	RootComponent->SetPhysicsLinearVelocity(LinearVelocity);
+	Velocity += CollocationAcceleration * DeltaTime;
 }
 
 void UHelicopterMovementComponent::ApplyAccelerationScaleAlongVector(FVector& BaseAcceleration,
@@ -206,17 +287,4 @@ FVector UHelicopterMovementComponent::GetHorizontalRightVector() const
 FVector UHelicopterMovementComponent::GetVerticalUpVector() const
 {
 	return {0.f, 0.f, 1.f};
-}
-
-UPrimitiveComponent* UHelicopterMovementComponent::GetRootPrimitiveComponent() const
-{
-	UPrimitiveComponent* const RootComponent = Cast<UPrimitiveComponent>(GetOwner()->GetRootComponent());
-
-	if(!RootComponent)
-	{
-		HELI_ERR("Can't get root component since it's not primitive component type");
-		return nullptr;
-	}
-
-	return RootComponent;
 }
