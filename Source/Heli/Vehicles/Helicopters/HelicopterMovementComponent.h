@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GameFramework/MovementComponent.h"
+#include "Heli/BFLs/PhysicsConvertionsLibrary.h"
 #include "Heli/BFLs/SpeedConversionsLibrary.h"
 #include "HelicopterMovementComponent.generated.h"
 
@@ -45,68 +46,37 @@ struct FPhysicsData
 	GENERATED_BODY()
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float GravityZ { USpeedConversionsLibrary::MsToCms(-9.8f) };
-	
+	float GravityZAcceleration { USpeedConversionsLibrary::MsToCms(-9.8f) };
+
+	// Max speed in all directions, even facing straight down
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float MaxHorizontalSpeed { USpeedConversionsLibrary::KmhToCms(260.f) };
+	float MaxSpeed { USpeedConversionsLibrary::KmhToCms(260.f) };
+
+	// Mass of helicopter itself, without cargo
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float MassKg { 7100.f };
+
+	// Add mass here if you need to simulate some heavy cargo
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float AdditionalMassKg { 0.f };
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float MaxUpSpeed { USpeedConversionsLibrary::KmhToCms(15.f) };
+	float MaxLiftForce { UPhysicsConvertionsLibrary::AccelMsAndMassToForce(22.f, MassKg) };
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float MaxDownSpeed { USpeedConversionsLibrary::KmhToCms(120.f) };
-	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration")
-	float MaxCollectiveAcceleration { USpeedConversionsLibrary::MsToCms(16.f) };
+	float MinLiftForce { 0.f };
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration")
-	float MinCollectiveAcceleration { USpeedConversionsLibrary::MsToCms(5.f) };
-	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Deceleration")
-	float HorizontalDeceleration { USpeedConversionsLibrary::MsToCms(4.f) };
-	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Deceleration")
-	float VerticalDeceleration { USpeedConversionsLibrary::MsToCms(7.f) };
+	// Values taken from US standard atmosphere air properties. Do not change them "just in case"
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float AirFrictionDensityAndDrag { 1.225f * 0.024f };
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Deceleration")
-	TObjectPtr<UCurveFloat> DecelerationScaleFromVelocityCurve {};
+	// Approximate area that will face air
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float AirFrictionAreaMSqr { 20.f };
 
-};
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TObjectPtr<UCurveFloat> AirFrictionScaleFromVelocityCurve {};
 
-USTRUCT(BlueprintType)
-struct FAccelerationScales
-{
-	GENERATED_BODY()
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Up")
-	TObjectPtr<UCurveFloat> UpAccelerationScale {};
-	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Up")
-	float UpAccelerationScaleDefault { 1.f };
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Down")
-	TObjectPtr<UCurveFloat> DownAccelerationScale {};
-	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Down")
-	float DownAccelerationScaleDefault { 1.f };
-	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Forward")
-	TObjectPtr<UCurveFloat> ForwardAccelerationScale {};
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Forward")
-	float ForwardAccelerationScaleDefault { 1.2f };
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Backward")
-	TObjectPtr<UCurveFloat> BackwardAccelerationScale {};
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Backward")
-	float BackwardAccelerationScaleDefault { 0.7f };
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Side")
-	TObjectPtr<UCurveFloat> SideAccelerationScale {};
-	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Side")
-	float SideAccelerationScaleDefault { 0.8f };
 };
 
 UCLASS(
@@ -134,7 +104,13 @@ public:
 	void AddRotation(float PitchIntensity, float YawIntensity, float RollIntensity);
 	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	virtual float GetGravityZ() const override;
 	
+	virtual float GetMaxSpeed() const override;
+
+	float GetActualMass() const;
+
 protected:
 	
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
@@ -145,15 +121,12 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
 	FRotationData RotationData {};
-
-	UPROPERTY(BlueprintReadOnly, EditAnywhere)
-	FAccelerationScales AccelerationScales {};
 	
 	virtual void BeginPlay() override;
 
 private:
 	
-	float CalculateAccelerationAmountBasedOnCollective() const;
+	float CalculateForceAmountBasedOnCollective() const;
 	FVector CalculateCurrentCollectiveAccelerationVector() const;
 	
 	void UpdateVelocity(float DeltaTime);
@@ -161,18 +134,11 @@ private:
 	void ApplyGravityToVelocity(float DeltaTime);
 	
 	void ApplyAccelerationsToVelocity(float DeltaTime);
-	void ApplyAccelerationScaleAlongVector(FVector& BaseAcceleration, const UCurveFloat* ScaleCurve,
-		float DefaultScale, const FVector& ScaleDirectionNormalized);
-	void ApplyScaleToResult(FVector& InOutResult, const FVector& DeltaToApply);
 
 	void ApplyVelocityDamping(float DeltaTime);
 	
 	void ClampVelocityToMaxSpeed();
 
 	void ApplyVelocityToLocation(float DeltaTime);
-	
-	FVector GetHorizontalForwardVector() const;
-	FVector GetHorizontalRightVector() const;
-	FVector GetVerticalUpVector() const;
 	
 };

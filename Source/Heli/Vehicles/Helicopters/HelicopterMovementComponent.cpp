@@ -25,11 +25,11 @@ void UHelicopterMovementComponent::BeginPlay()
 	Super::BeginPlay();
 }
 
-float UHelicopterMovementComponent::CalculateAccelerationAmountBasedOnCollective() const
+float UHelicopterMovementComponent::CalculateForceAmountBasedOnCollective() const
 {
 	return UKismetMathLibrary::Lerp(
-		PhysicsData.MinCollectiveAcceleration,
-		PhysicsData.MaxCollectiveAcceleration,
+		PhysicsData.MinLiftForce,
+		PhysicsData.MaxLiftForce,
 		CollectiveData.CurrentCollective
 	);
 }
@@ -73,59 +73,40 @@ void UHelicopterMovementComponent::AddRotation(float PitchIntensity, float YawIn
 FVector UHelicopterMovementComponent::CalculateCurrentCollectiveAccelerationVector() const
 {
 	const FVector AccelerationDirection = GetOwner()->GetActorUpVector();
-	const float CurrentCollocationAccelerationAmount = CalculateAccelerationAmountBasedOnCollective();
+	const float CurrentCollocationForceAmount = CalculateForceAmountBasedOnCollective();
 
-	return AccelerationDirection * CurrentCollocationAccelerationAmount;
-}
-
-void UHelicopterMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-{
-	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
-	UpdateVelocity(DeltaTime);
-}
-
-void UHelicopterMovementComponent::ApplyScaleToResult(FVector& InOutResult, const FVector& DeltaToApply)
-{
-	// We do this since InOutResult axis might be negative together with DeltaToApply axis
-	// in this case instead of scaling down or up, it will only scale it up exponentially
+	const float Acceleration = USpeedConversionsLibrary::MsToCms(CurrentCollocationForceAmount / GetActualMass());
 	
-	InOutResult.X += InOutResult.X > 0  ? DeltaToApply.X : -DeltaToApply.X;
-	InOutResult.Y += InOutResult.Y > 0  ? DeltaToApply.Y : -DeltaToApply.Y;
-	InOutResult.Z += InOutResult.Z > 0  ? DeltaToApply.Z : -DeltaToApply.Z;
+	return AccelerationDirection * Acceleration;
+}
+
+float UHelicopterMovementComponent::GetGravityZ() const
+{
+	return PhysicsData.GravityZAcceleration;
+}
+
+float UHelicopterMovementComponent::GetMaxSpeed() const
+{
+	return PhysicsData.MaxSpeed;
+}
+
+float UHelicopterMovementComponent::GetActualMass() const
+{
+	return PhysicsData.MassKg + PhysicsData.AdditionalMassKg;
 }
 
 void UHelicopterMovementComponent::ApplyVelocityDamping(float DeltaTime)
 {
-	// Apply horizontal damping
-	const float HorizontalDecelerationScale = PhysicsData.DecelerationScaleFromVelocityCurve
-		? PhysicsData.DecelerationScaleFromVelocityCurve
-			->GetFloatValue(USpeedConversionsLibrary::CmsToKmh(Velocity.Size2D()))
-		: 1.f;
+	const float K = PhysicsData.AirFrictionDensityAndDrag * PhysicsData.AirFrictionAreaMSqr;
+	const float AirFrictionForce = K * FMath::Square(Velocity.Length()) / 2;
+	const float AirFrictionDeceleration = AirFrictionForce / GetActualMass();
 	
-	Velocity += -Velocity.GetSafeNormal() * PhysicsData.HorizontalDeceleration
-		* HorizontalDecelerationScale * DeltaTime;
-	
-	// Apply vertical damping
-	const float VerticalDecelerationScale = PhysicsData.DecelerationScaleFromVelocityCurve
-		? PhysicsData.DecelerationScaleFromVelocityCurve
-			->GetFloatValue(USpeedConversionsLibrary::CmsToKmh(FMath::Abs(Velocity.Z)))
-		: 1.f;
-	
-	Velocity.Z += -FMath::Sign(Velocity.Z) * PhysicsData.VerticalDeceleration
-		* VerticalDecelerationScale * DeltaTime;
+	Velocity += -Velocity.GetSafeNormal() * AirFrictionDeceleration * DeltaTime;
 }
 
 void UHelicopterMovementComponent::ClampVelocityToMaxSpeed()
 {
-	// Clamp horizontal speed
-	Velocity = Velocity.GetClampedToMaxSize2D(PhysicsData.MaxHorizontalSpeed);
-	
-	// Clamp up speed
-	Velocity.Z = FMath::Min(Velocity.Z, PhysicsData.MaxUpSpeed);
-
-	// Clamp down speed
-	Velocity.Z = FMath::Max(Velocity.Z, -PhysicsData.MaxDownSpeed);
+	Velocity = Velocity.GetClampedToMaxSize(PhysicsData.MaxSpeed);
 }
 
 void UHelicopterMovementComponent::ApplyVelocityToLocation(float DeltaTime)
@@ -162,6 +143,13 @@ void UHelicopterMovementComponent::ApplyVelocityToLocation(float DeltaTime)
 	Velocity = (NewLocation - OldLocation) / DeltaTime;
 }
 
+void UHelicopterMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	UpdateVelocity(DeltaTime);
+}
+
 void UHelicopterMovementComponent::UpdateVelocity(float DeltaTime)
 {
 	ApplyGravityToVelocity(DeltaTime);
@@ -186,113 +174,7 @@ void UHelicopterMovementComponent::ApplyGravityToVelocity(float DeltaTime)
 
 void UHelicopterMovementComponent::ApplyAccelerationsToVelocity(float DeltaTime)
 {
-	FVector CollocationAcceleration = CalculateCurrentCollectiveAccelerationVector();
-	
-	// Apply acceleration scales for each side
-
-	// Forward
-	const FVector ForwardVector = GetHorizontalForwardVector();
-	ApplyAccelerationScaleAlongVector(
-		CollocationAcceleration,
-		AccelerationScales.ForwardAccelerationScale,
-		AccelerationScales.ForwardAccelerationScaleDefault,
-		ForwardVector
-	);
-
-	// Backward
-	const FVector BackwardVector = -ForwardVector;
-	ApplyAccelerationScaleAlongVector(
-		CollocationAcceleration,
-		AccelerationScales.BackwardAccelerationScale,
-		AccelerationScales.BackwardAccelerationScaleDefault,
-		BackwardVector
-	);
-
-	// Up
-	const FVector UpVector = GetVerticalUpVector();
-	ApplyAccelerationScaleAlongVector(
-		CollocationAcceleration,
-		AccelerationScales.UpAccelerationScale,
-		AccelerationScales.UpAccelerationScaleDefault,
-		UpVector
-	);
-
-	// Down
-	const FVector DownVector = -UpVector;
-	ApplyAccelerationScaleAlongVector(
-		CollocationAcceleration,
-		AccelerationScales.DownAccelerationScale,
-		AccelerationScales.DownAccelerationScaleDefault,
-		DownVector
-	);
-
-	// Right
-	const FVector RightVector = GetHorizontalRightVector();
-	ApplyAccelerationScaleAlongVector(
-		CollocationAcceleration,
-		AccelerationScales.SideAccelerationScale,
-		AccelerationScales.SideAccelerationScaleDefault,
-		RightVector
-	);
-	
-	// Left
-	const FVector LeftVector = -RightVector;
-	ApplyAccelerationScaleAlongVector(
-		CollocationAcceleration,
-		AccelerationScales.SideAccelerationScale,
-		AccelerationScales.SideAccelerationScaleDefault,
-		LeftVector
-	);
+	const FVector CollocationAcceleration = CalculateCurrentCollectiveAccelerationVector();
 	
 	Velocity += CollocationAcceleration * DeltaTime;
-}
-
-void UHelicopterMovementComponent::ApplyAccelerationScaleAlongVector(FVector& BaseAcceleration,
-	const UCurveFloat* ScaleCurve, float DefaultScale, const FVector& ScaleDirectionNormalized)
-{
-	// Get acceleration along forward vector
-	FVector BaseAccelerationAlongDirection = BaseAcceleration * ScaleDirectionNormalized;
-
-	// We don't want to scale negative acceleration
-	// e.g. when applying forward and backward acceleration scales,
-	// without this we will scale both forward and backward accelerations,
-	// by applying both forward and backward scales to same acceleration
-	BaseAccelerationAlongDirection.X = FMath::Max(BaseAccelerationAlongDirection.X, 0.f);
-	BaseAccelerationAlongDirection.Y = FMath::Max(BaseAccelerationAlongDirection.Y, 0.f);
-	BaseAccelerationAlongDirection.Z = FMath::Max(BaseAccelerationAlongDirection.Z, 0.f);
-
-	// Get current acceleration scale on current speed
-	const float Scale = ScaleCurve
-		? ScaleCurve->GetFloatValue(USpeedConversionsLibrary::CmsToKmh(BaseAccelerationAlongDirection.Length()))
-		: DefaultScale;
-	
-	// Scale it
-	const FVector ScaledAccelerationAlongDirection = BaseAccelerationAlongDirection * Scale;
-
-	// Add scaled acceleration
-	const FVector AccelerationDelta = ScaledAccelerationAlongDirection - BaseAccelerationAlongDirection;
-	ApplyScaleToResult(BaseAcceleration, AccelerationDelta);
-}
-
-FVector UHelicopterMovementComponent::GetHorizontalForwardVector() const
-{
-	FVector ForwardVector = GetOwner()->GetActorForwardVector();
-	ForwardVector.Z = 0.f;
-	ForwardVector.Normalize();
-
-	return ForwardVector;
-}
-
-FVector UHelicopterMovementComponent::GetHorizontalRightVector() const
-{
-	FVector RightVector = GetOwner()->GetActorRightVector();
-	RightVector.Z = 0.f;
-	RightVector.Normalize();
-
-	return RightVector;
-}
-
-FVector UHelicopterMovementComponent::GetVerticalUpVector() const
-{
-	return {0.f, 0.f, 1.f};
 }
