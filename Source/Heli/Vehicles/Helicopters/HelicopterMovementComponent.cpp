@@ -72,10 +72,10 @@ void UHelicopterMovementComponent::AddRotation(float PitchIntensity, float YawIn
 
 FVector UHelicopterMovementComponent::CalculateCurrentCollectiveAccelerationVector() const
 {
-	const FVector UpVector = GetOwner()->GetActorUpVector();
+	const FVector AccelerationDirection = GetOwner()->GetActorUpVector();
 	const float CurrentCollocationAccelerationAmount = CalculateAccelerationAmountBasedOnCollective();
 
-	return UpVector * CurrentCollocationAccelerationAmount;
+	return AccelerationDirection * CurrentCollocationAccelerationAmount;
 }
 
 void UHelicopterMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -97,16 +97,13 @@ void UHelicopterMovementComponent::ApplyScaleToResult(FVector& InOutResult, cons
 
 void UHelicopterMovementComponent::ApplyVelocityDamping(float DeltaTime)
 {
-	if(Velocity.IsNearlyZero())
-		return;
-
 	// Apply horizontal damping
 	const float HorizontalDecelerationScale = PhysicsData.DecelerationScaleFromVelocityCurve
 		? PhysicsData.DecelerationScaleFromVelocityCurve
 			->GetFloatValue(USpeedConversionsLibrary::CmsToKmh(Velocity.Size2D()))
 		: 1.f;
 	
-	Velocity += -Velocity.GetUnsafeNormal2D() * PhysicsData.HorizontalDeceleration
+	Velocity += -Velocity.GetSafeNormal() * PhysicsData.HorizontalDeceleration
 		* HorizontalDecelerationScale * DeltaTime;
 	
 	// Apply vertical damping
