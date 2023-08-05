@@ -19,25 +19,14 @@ AHelicopter::AHelicopter()
 	HelicopterMeshComponent = CreateDefaultSubobject<UHelicopterRootMeshComponent>(HelicopterMeshComponentName);
 	SetRootComponent(HelicopterMeshComponent);
 	
-	HelicopterMovementComponent = CreateDefaultSubobject<UHelicopterMovementComponent>(HelicopterMovementComponentName);
-	
-	CameraLookAroundComponent = CreateDefaultSubobject<UCameraLookAroundComponent>(CameraLookAroundComponentName);
-	
 	CameraSpringArmComponent = CreateDefaultSubobject<USpringArmComponent>(SpringArmComponentName);
-
-	if(HelicopterMeshComponent->DoesSocketExist(UHelicopterRootMeshComponent::HelicopterMeshSkeletonCameraSocketName))
-	{
-		CameraSpringArmComponent
-			->SetupAttachment(RootComponent, UHelicopterRootMeshComponent::HelicopterMeshSkeletonCameraSocketName);
-	}
-	else
-	{
-		CameraSpringArmComponent->SetupAttachment(RootComponent);
-		HELI_ERR("Can't attach camera spring arm since helicopter mesh doesn't have a socket to do that");
-	}
+	CameraSpringArmComponent->SetupAttachment(RootComponent);
 	
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(CameraComponentName);
 	CameraComponent->SetupAttachment(CameraSpringArmComponent, USpringArmComponent::SocketName);
+
+	HelicopterMovementComponent = CreateDefaultSubobject<UHelicopterMovementComponent>(HelicopterMovementComponentName);
+	CameraLookAroundComponent = CreateDefaultSubobject<UCameraLookAroundComponent>(CameraLookAroundComponentName);
 }
 
 void AHelicopter::BeginPlay()
@@ -101,4 +90,29 @@ void AHelicopter::ConfigCameraAndSpringArm()
 	CameraSpringArmComponent->CameraRotationLagSpeed = 15.f;
 
 	CameraComponent->SetFieldOfView(120.f);
+
+	const bool bSocketExists = HelicopterMeshComponent
+		->DoesSocketExist(UHelicopterRootMeshComponent::HelicopterMeshSkeletonCameraSocketName);
+	
+	if(HelicopterMeshComponent && bSocketExists)
+	{
+		const FAttachmentTransformRules AttachRules {
+			EAttachmentRule::SnapToTarget,
+			EAttachmentRule::SnapToTarget,
+			EAttachmentRule::SnapToTarget,
+			true
+		};
+		
+		CameraSpringArmComponent
+			->AttachToComponent(
+				RootComponent,
+				AttachRules,
+				UHelicopterRootMeshComponent::HelicopterMeshSkeletonCameraSocketName
+			);
+	}
+	else
+	{
+		HELI_ERR("Can't attach camera spring arm since helicopter mesh doesn't have a socket to do that. "
+		   "Spring arm remain attached to root component");
+	}
 }

@@ -12,7 +12,7 @@ class UCameraComponent;
 class USpringArmComponent;
 class UHelicopterMovementComponent;
 
-UCLASS(Blueprintable, HideCategories=(ComponentReplication, Replication, ActorTick))
+UCLASS(Blueprintable, Abstract, HideCategories=(ComponentReplication, Replication, ActorTick))
 class HELI_API AHelicopter : public APawn
 {
 	GENERATED_BODY()
