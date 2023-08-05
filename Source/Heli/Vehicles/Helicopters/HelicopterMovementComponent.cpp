@@ -61,7 +61,7 @@ void UHelicopterMovementComponent::AddRotation(float PitchIntensity, float YawIn
 
 	const float DeltaTime = GetWorld()->DeltaTimeSeconds;
 	
-	FRotator Rotator {
+	const FRotator Rotator {
 		RotationData.PitchSpeed * PitchIntensity * DeltaTime,
 		RotationData.YawSpeed * YawIntensity * DeltaTime,
 		RotationData.RollSpeed * RollIntensity * DeltaTime
@@ -97,16 +97,43 @@ float UHelicopterMovementComponent::GetActualMass() const
 
 void UHelicopterMovementComponent::ApplyVelocityDamping(float DeltaTime)
 {
-	const float K = PhysicsData.AirFrictionDensityAndDrag * PhysicsData.AirFrictionAreaMSqr;
-	const float AirFrictionForce = K * FMath::Square(Velocity.Length()) / 2;
-	const float AirFrictionDeceleration = AirFrictionForce / GetActualMass();
+	// We use raw accelerations since air friction doesn't depend on helicopter mass
+	// and we don't want to make all of these too complicated
 	
-	Velocity += -Velocity.GetSafeNormal() * AirFrictionDeceleration * DeltaTime;
+	// Apply horizontal air friction
+	// Note: Horizontal Speed is always positive
+	const float HorizontalSpeed = USpeedConversionsLibrary::CmsToKmh(Velocity.Size2D());
+	const float HorizontalAirFrictionDeceleration = PhysicsData.HorizontalAirFrictionDecelerationToVelocityCurve
+		? USpeedConversionsLibrary::KmhToCms(
+			PhysicsData.HorizontalAirFrictionDecelerationToVelocityCurve->GetFloatValue(HorizontalSpeed)
+		)
+		: 0.f;
+	
+	Velocity += -Velocity.GetSafeNormal2D() * HorizontalAirFrictionDeceleration * DeltaTime;
+
+	// Apply vertical air friction
+	// Note: Vertical Speed may be negative (in case of falling)
+	const float VerticalSpeed = USpeedConversionsLibrary::CmsToKmh(Velocity.Z);
+	const float VerticalAirFrictionDeceleration = PhysicsData.VerticalAirFrictionDecelerationToVelocityCurve
+		? USpeedConversionsLibrary::KmhToCms(
+			PhysicsData.VerticalAirFrictionDecelerationToVelocityCurve->GetFloatValue(VerticalSpeed)
+		)
+		: 0.f;
+
+	Velocity.Z += -FMath::Sign(Velocity.Z) * VerticalAirFrictionDeceleration * DeltaTime;
 }
 
 void UHelicopterMovementComponent::ClampVelocityToMaxSpeed()
 {
-	Velocity = Velocity.GetClampedToMaxSize(PhysicsData.MaxSpeed);
+	const float AverageMaxSpeed = GetMaxSpeed() * PhysicsData.AverageMaxSpeedScale;
+	
+	// Allow helicopter to fall faster then anything
+	Velocity.Z = FMath::Clamp(Velocity.Z, -PhysicsData.MaxSpeed, AverageMaxSpeed);
+	
+	// Limit horizontal velocity
+	const FVector ClampedHorizontal = Velocity.GetClampedToMaxSize2D(AverageMaxSpeed);
+	Velocity.X = ClampedHorizontal.X;
+	Velocity.Y = ClampedHorizontal.Y;
 }
 
 void UHelicopterMovementComponent::ApplyVelocityToLocation(float DeltaTime)
@@ -152,16 +179,16 @@ void UHelicopterMovementComponent::TickComponent(float DeltaTime, ELevelTick Tic
 
 void UHelicopterMovementComponent::UpdateVelocity(float DeltaTime)
 {
-	ApplyGravityToVelocity(DeltaTime);
-	
 	ApplyAccelerationsToVelocity(DeltaTime);
-
-	ApplyVelocityDamping(DeltaTime);
+	
+	ApplyGravityToVelocity(DeltaTime);
 	
 	ClampVelocityToMaxSpeed();
 
 	ApplyVelocityToLocation(DeltaTime);
 
+	ApplyVelocityDamping(DeltaTime);
+	
 	UpdateComponentVelocity();
 }
 

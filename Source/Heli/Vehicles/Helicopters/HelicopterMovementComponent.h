@@ -18,10 +18,10 @@ struct FCollectiveData
 	float CurrentCollective { 0.f };
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float CollectiveIncreaseSpeed { 0.75f };
+	float CollectiveIncreaseSpeed { 0.45f };
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float CollectiveDecreaseSpeed { 0.75f };
+	float CollectiveDecreaseSpeed { 0.45f };
 };
 
 USTRUCT(BlueprintType)
@@ -36,7 +36,7 @@ struct FRotationData
 	float RollSpeed { 30.f };
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float YawSpeed { 25.f };
+	float YawSpeed { 35.f };
 	
 };
 
@@ -50,7 +50,10 @@ struct FPhysicsData
 
 	// Max speed in all directions, even facing straight down
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float MaxSpeed { USpeedConversionsLibrary::KmhToCms(260.f) };
+	float MaxSpeed { USpeedConversionsLibrary::KmhToCms(320.f) };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float AverageMaxSpeedScale { 0.8f };
 
 	// Mass of helicopter itself, without cargo
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
@@ -66,17 +69,12 @@ struct FPhysicsData
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float MinLiftForce { 0.f };
 
-	// Values taken from US standard atmosphere air properties. Do not change them "just in case"
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float AirFrictionDensityAndDrag { 1.225f * 0.024f };
-
-	// Approximate area that will face air
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float AirFrictionAreaMSqr { 20.f };
+	TObjectPtr<UCurveFloat> HorizontalAirFrictionDecelerationToVelocityCurve {};
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	TObjectPtr<UCurveFloat> AirFrictionScaleFromVelocityCurve {};
-
+	TObjectPtr<UCurveFloat> VerticalAirFrictionDecelerationToVelocityCurve {};
+	
 };
 
 UCLASS(
