@@ -43,18 +43,34 @@ USTRUCT(BlueprintType)
 struct FPhysicsData
 {
 	GENERATED_BODY()
-
+	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float GravityZ { USpeedConversionsLibrary::MsToCms(-9.8f) };
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float MaxSpeed { USpeedConversionsLibrary::KmhToCms(260.f) };
+	float MaxHorizontalSpeed { USpeedConversionsLibrary::KmhToCms(260.f) };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float MaxUpSpeed { USpeedConversionsLibrary::KmhToCms(15.f) };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float MaxDownSpeed { USpeedConversionsLibrary::KmhToCms(120.f) };
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration")
 	float MaxCollectiveAcceleration { USpeedConversionsLibrary::MsToCms(16.f) };
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Acceleration")
 	float MinCollectiveAcceleration { USpeedConversionsLibrary::MsToCms(5.f) };
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Deceleration")
+	float HorizontalDeceleration { USpeedConversionsLibrary::MsToCms(4.f) };
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Deceleration")
+	float VerticalDeceleration { USpeedConversionsLibrary::MsToCms(7.f) };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Deceleration")
+	TObjectPtr<UCurveFloat> DecelerationScaleFromVelocityCurve {};
+
 };
 
 USTRUCT(BlueprintType)
@@ -119,10 +135,6 @@ public:
 	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	
-	virtual float GetGravityZ() const override;
-
-	virtual float GetMaxSpeed() const override;
-	
 protected:
 	
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
@@ -143,7 +155,7 @@ private:
 	
 	float CalculateAccelerationAmountBasedOnCollective() const;
 	FVector CalculateCurrentCollectiveAccelerationVector() const;
-
+	
 	void UpdateVelocity(float DeltaTime);
 
 	void ApplyGravityToVelocity(float DeltaTime);

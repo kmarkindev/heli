@@ -85,16 +85,6 @@ void UHelicopterMovementComponent::TickComponent(float DeltaTime, ELevelTick Tic
 	UpdateVelocity(DeltaTime);
 }
 
-float UHelicopterMovementComponent::GetGravityZ() const
-{
-	return PhysicsData.GravityZ;
-}
-
-float UHelicopterMovementComponent::GetMaxSpeed() const
-{
-	return PhysicsData.MaxSpeed;
-}
-
 void UHelicopterMovementComponent::ApplyScaleToResult(FVector& InOutResult, const FVector& DeltaToApply)
 {
 	// We do this since InOutResult axis might be negative together with DeltaToApply axis
@@ -107,17 +97,38 @@ void UHelicopterMovementComponent::ApplyScaleToResult(FVector& InOutResult, cons
 
 void UHelicopterMovementComponent::ApplyVelocityDamping(float DeltaTime)
 {
-	Velocity *= FMath::Pow(0.8f, DeltaTime);
+	if(Velocity.IsNearlyZero())
+		return;
+
+	// Apply horizontal damping
+	const float HorizontalDecelerationScale = PhysicsData.DecelerationScaleFromVelocityCurve
+		? PhysicsData.DecelerationScaleFromVelocityCurve
+			->GetFloatValue(USpeedConversionsLibrary::CmsToKmh(Velocity.Size2D()))
+		: 1.f;
+	
+	Velocity += -Velocity.GetUnsafeNormal2D() * PhysicsData.HorizontalDeceleration
+		* HorizontalDecelerationScale * DeltaTime;
+	
+	// Apply vertical damping
+	const float VerticalDecelerationScale = PhysicsData.DecelerationScaleFromVelocityCurve
+		? PhysicsData.DecelerationScaleFromVelocityCurve
+			->GetFloatValue(USpeedConversionsLibrary::CmsToKmh(FMath::Abs(Velocity.Z)))
+		: 1.f;
+	
+	Velocity.Z += -FMath::Sign(Velocity.Z) * PhysicsData.VerticalDeceleration
+		* VerticalDecelerationScale * DeltaTime;
 }
 
 void UHelicopterMovementComponent::ClampVelocityToMaxSpeed()
 {
-	const float MaxSpeed = GetMaxSpeed();
+	// Clamp horizontal speed
+	Velocity = Velocity.GetClampedToMaxSize2D(PhysicsData.MaxHorizontalSpeed);
 	
-	if(IsExceedingMaxSpeed(MaxSpeed) == true)
-	{
-		Velocity = Velocity.GetUnsafeNormal() * MaxSpeed;
-	}
+	// Clamp up speed
+	Velocity.Z = FMath::Min(Velocity.Z, PhysicsData.MaxUpSpeed);
+
+	// Clamp down speed
+	Velocity.Z = FMath::Max(Velocity.Z, -PhysicsData.MaxDownSpeed);
 }
 
 void UHelicopterMovementComponent::ApplyVelocityToLocation(float DeltaTime)
@@ -129,7 +140,7 @@ void UHelicopterMovementComponent::ApplyVelocityToLocation(float DeltaTime)
 	const FVector DeltaMove = Velocity * DeltaTime;
 	const FQuat Rotation = UpdatedComponent->GetComponentQuat();
 
-	if (DeltaMove.IsNearlyZero(1e-6f))
+	if (DeltaMove.IsNearlyZero())
 	{
 		return;
 	}
