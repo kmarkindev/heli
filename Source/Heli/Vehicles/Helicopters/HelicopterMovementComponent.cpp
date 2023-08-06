@@ -2,8 +2,6 @@
 
 
 #include "HelicopterMovementComponent.h"
-
-#include "Heli/LogHeli.h"
 #include "Kismet/KismetMathLibrary.h"
 
 UHelicopterMovementComponent::UHelicopterMovementComponent()
@@ -27,11 +25,14 @@ void UHelicopterMovementComponent::BeginPlay()
 
 float UHelicopterMovementComponent::CalculateForceAmountBasedOnCollective() const
 {
-	return UKismetMathLibrary::Lerp(
-		PhysicsData.MinLiftForce,
-		PhysicsData.MaxLiftForce,
-		CollectiveData.CurrentCollective
-	);
+	// Get collective lift force scale from curve
+	// or if there is no curve, use collective as a scale itself
+	
+	const float LiftForceScale = PhysicsData.LiftForceScaleFromCollectiveCurve
+		? PhysicsData.LiftForceScaleFromCollectiveCurve->GetFloatValue(CollectiveData.CurrentCollective)
+		: CollectiveData.CurrentCollective;
+
+	return PhysicsData.LiftForceFromMaxCollective * LiftForceScale;
 }
 
 void UHelicopterMovementComponent::SetCollective(float NewCollocation)
@@ -74,10 +75,20 @@ FVector UHelicopterMovementComponent::CalculateCurrentCollectiveAccelerationVect
 {
 	const FVector AccelerationDirection = GetOwner()->GetActorUpVector();
 	const float CurrentCollocationForceAmount = CalculateForceAmountBasedOnCollective();
-
+	
 	const float Acceleration = USpeedConversionsLibrary::MsToCms(CurrentCollocationForceAmount / GetActualMass());
 	
-	return AccelerationDirection * Acceleration;
+	FVector FinalAcceleration = AccelerationDirection * Acceleration;
+	
+	float LiftScaleFromRotation = PhysicsData.LiftScaleFromRotationCurve
+		? PhysicsData.LiftScaleFromRotationCurve->GetFloatValue(GetCurrentAngle())
+		: 1.f;
+	LiftScaleFromRotation = FMath::Clamp(LiftScaleFromRotation, 0.f, 1.f);
+
+	// Do not scale lift when going to the ground
+	FinalAcceleration.Z = FMath::Min(FinalAcceleration.Z, FinalAcceleration.Z * LiftScaleFromRotation);
+	
+	return FinalAcceleration;
 }
 
 float UHelicopterMovementComponent::GetGravityZ() const
@@ -168,6 +179,17 @@ void UHelicopterMovementComponent::ApplyVelocityToLocation(float DeltaTime)
 	const FVector NewLocation = UpdatedComponent->GetComponentLocation();
 
 	Velocity = (NewLocation - OldLocation) / DeltaTime;
+}
+
+float UHelicopterMovementComponent::GetCurrentAngle() const
+{
+	const FVector UpVector {0.f, 0.f ,1.f};
+	const FVector ComponentUpVector = UpdatedComponent->GetUpVector();
+
+	const float DotProduct = UpVector.Dot(ComponentUpVector);
+	const float AngleDecrees = FMath::RadiansToDegrees(FMath::Acos(DotProduct));
+	
+	return AngleDecrees;
 }
 
 void UHelicopterMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

@@ -14,7 +14,7 @@ struct FCollectiveData
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta=(ClampMin=0.0, ClampMax=1.0))
 	float CurrentCollective { 0.f };
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
@@ -33,7 +33,7 @@ struct FRotationData
 	float PitchSpeed { 35.f };
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float RollSpeed { 30.f };
+	float RollSpeed { 35.f };
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float YawSpeed { 35.f };
@@ -57,17 +57,24 @@ struct FPhysicsData
 
 	// Mass of helicopter itself, without cargo
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float MassKg { 7100.f };
-
+	float MassKg { 0.f };
+	
 	// Add mass here if you need to simulate some heavy cargo
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float AdditionalMassKg { 0.f };
-
+	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float MaxLiftForce { UPhysicsConvertionsLibrary::AccelMsAndMassToForce(22.f, MassKg) };
+	float LiftForceFromMaxCollective { 0.f };
 
+	// It's better to start making it from two keys: (0; 0) (1;0)
+	// then place new key at 0.45 and set it's scale so helicopter is going to start going up at this key
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float MinLiftForce { 0.f };
+	TObjectPtr<UCurveFloat> LiftForceScaleFromCollectiveCurve {};
+
+	// It gets angle between world Up and component Up and passes it to the curve to find lift scale
+	// we need it to not allow helicopter to fly on pitch = 60 using max collective
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	TObjectPtr<UCurveFloat> LiftScaleFromRotationCurve {};
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TObjectPtr<UCurveFloat> HorizontalAirFrictionDecelerationToVelocityCurve {};
@@ -108,12 +115,12 @@ public:
 	virtual float GetMaxSpeed() const override;
 
 	float GetActualMass() const;
-
+	
 protected:
 	
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
 	FPhysicsData PhysicsData {};
-
+	
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
 	FCollectiveData CollectiveData {};
 
@@ -138,5 +145,7 @@ private:
 	void ClampVelocityToMaxSpeed();
 
 	void ApplyVelocityToLocation(float DeltaTime);
+
+	float GetCurrentAngle() const;
 	
 };
