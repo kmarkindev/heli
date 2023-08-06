@@ -56,19 +56,11 @@ void UHelicopterMovementComponent::DecreaseCollective()
 
 void UHelicopterMovementComponent::AddRotation(float PitchIntensity, float YawIntensity, float RollIntensity)
 {
-	PitchIntensity = UKismetMathLibrary::FClamp(PitchIntensity, -1.0, 1.0);
-	RollIntensity = UKismetMathLibrary::FClamp(RollIntensity, -1.0, 1.0);
-	YawIntensity = UKismetMathLibrary::FClamp(YawIntensity, -1.0, 1.0);
-
-	const float DeltaTime = GetWorld()->DeltaTimeSeconds;
+	// Allow to collect input from different source, but do not allow it to be more than possible
 	
-	const FRotator Rotator {
-		RotationData.PitchSpeed * PitchIntensity * DeltaTime,
-		RotationData.YawSpeed * YawIntensity * DeltaTime,
-		RotationData.RollSpeed * RollIntensity * DeltaTime
-	};
-	
-	GetOwner()->AddActorLocalRotation(Rotator, true, nullptr, ETeleportType::TeleportPhysics);
+	RotationData.PitchPending = FMath::Clamp(RotationData.PitchPending + PitchIntensity, -1.f, 1.f);
+	RotationData.RollPending = FMath::Clamp(RotationData.RollPending + RollIntensity, -1.f, 1.f);
+	RotationData.YawPending = FMath::Clamp(RotationData.YawPending + YawIntensity, -1.f, 1.f);
 }
 
 FVector UHelicopterMovementComponent::CalculateCurrentCollectiveAccelerationVector() const
@@ -147,15 +139,34 @@ void UHelicopterMovementComponent::ClampVelocityToMaxSpeed()
 	Velocity.Y = ClampedHorizontal.Y;
 }
 
-void UHelicopterMovementComponent::ApplyVelocityToLocation(float DeltaTime)
+void UHelicopterMovementComponent::ApplyVelocitiesToLocation(float DeltaTime)
 {
 	// Remember old location before move
 	const FVector OldLocation = UpdatedComponent->GetComponentLocation();
 
 	// Find values to use during move
 	const FVector DeltaMove = Velocity * DeltaTime;
-	const FQuat Rotation = UpdatedComponent->GetComponentQuat();
+	FRotator Rotation = UpdatedComponent->GetComponentRotation();
 
+	// Apply angular velocity
+	if(!RotationData.AngularVelocity.IsNearlyZero())
+	{
+		const FRotator PitchRotator = UKismetMathLibrary::RotatorFromAxisAndAngle(
+			UpdatedComponent->GetRightVector(), RotationData.AngularVelocity.X * DeltaTime
+		);
+		const FRotator RollRotator = UKismetMathLibrary::RotatorFromAxisAndAngle(
+			UpdatedComponent->GetForwardVector(), RotationData.AngularVelocity.Y * DeltaTime
+		);
+		const FRotator YawRotator = UKismetMathLibrary::RotatorFromAxisAndAngle(
+			UpdatedComponent->GetUpVector(), RotationData.AngularVelocity.Z * DeltaTime
+		);
+		
+		Rotation = UKismetMathLibrary::ComposeRotators(Rotation, RollRotator);
+		Rotation = UKismetMathLibrary::ComposeRotators(Rotation, PitchRotator);
+		Rotation = UKismetMathLibrary::ComposeRotators(Rotation, YawRotator);
+	}
+
+	// Apply linear velocity
 	if (DeltaMove.IsNearlyZero())
 	{
 		return;
@@ -192,11 +203,107 @@ float UHelicopterMovementComponent::GetCurrentAngle() const
 	return AngleDecrees;
 }
 
+void UHelicopterMovementComponent::UpdateAngularVelocity(float DeltaTime)
+{
+	const bool bHasMoved = ApplyAccelerationsToAngularVelocity(DeltaTime);
+
+	// Do not apply deceleration if we rotated
+	// It allows to rotate even with low (0.1) intensity
+	if(!bHasMoved)
+	{
+		ApplyAngularVelocityDamping(DeltaTime);
+	}
+
+	ClampAngularVelocity();
+}
+
+bool UHelicopterMovementComponent::ApplyAccelerationsToAngularVelocity(float DeltaTime)
+{
+	const float PitchAcceleration = RotationData.PitchPending * RotationData.PitchAcceleration * DeltaTime;
+	const float RollAcceleration = RotationData.RollPending * RotationData.RollAcceleration * DeltaTime;
+	const float YawAcceleration = RotationData.YawPending * RotationData.YawAcceleration * DeltaTime;
+
+	const FVector Delta = {
+		PitchAcceleration,
+		RollAcceleration,
+		YawAcceleration
+	};
+
+	RotationData.AngularVelocity += Delta;
+
+	RotationData.PitchPending = 0.f;
+	RotationData.RollPending = 0.f;
+	RotationData.YawPending = 0.f;
+	
+	return !Delta.IsNearlyZero();
+}
+
+void UHelicopterMovementComponent::ApplyAngularVelocityDamping(float DeltaTime)
+{
+	// Find new pitch, roll, yaw
+
+	const int PitchSign = FMath::Sign(RotationData.AngularVelocity.X); 
+	const float Pitch = RotationData.AngularVelocity.X
+		+ -PitchSign
+		* RotationData.PitchDeceleration
+		* DeltaTime;
+
+	const int RollSign = FMath::Sign(RotationData.AngularVelocity.Y);
+	const float Roll = RotationData.AngularVelocity.Y
+		+ -RollSign
+		* RotationData.RollDeceleration
+		* DeltaTime;
+
+	const int YawSign = FMath::Sign(RotationData.AngularVelocity.Z);
+	const float Yaw = RotationData.AngularVelocity.Z
+		+ -YawSign
+		* RotationData.YawDeceleration
+		* DeltaTime;
+	
+	// clamp them so they dont produce opposite acceleration and save
+	RotationData.AngularVelocity.X = PitchSign == 1
+		? FMath::Max(0.f, Pitch)
+		: FMath::Min(0.f, Pitch);
+
+	RotationData.AngularVelocity.Y = RollSign == 1
+		? FMath::Max(0.f, Roll)
+		: FMath::Min(0.f, Roll);
+
+	RotationData.AngularVelocity.Z = YawSign == 1
+		? FMath::Max(0.f, Yaw)
+		: FMath::Min(0.f, Yaw);
+}
+
+void UHelicopterMovementComponent::ClampAngularVelocity()
+{
+	RotationData.AngularVelocity.X = FMath::ClampAngle(
+		RotationData.AngularVelocity.X,
+		-RotationData.PitchMaxSpeed,
+		RotationData.PitchMaxSpeed
+	);
+
+	RotationData.AngularVelocity.Y = FMath::ClampAngle(
+		RotationData.AngularVelocity.Y,
+		-RotationData.RollMaxSpeed,
+		RotationData.RollMaxSpeed
+	);
+
+	RotationData.AngularVelocity.Z = FMath::ClampAngle(
+		RotationData.AngularVelocity.Z,
+		-RotationData.YawMaxSpeed,
+		RotationData.YawMaxSpeed
+	);
+}
+
 void UHelicopterMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	UpdateVelocity(DeltaTime);
+
+	UpdateAngularVelocity(DeltaTime);
+
+	ApplyVelocitiesToLocation(DeltaTime);
 }
 
 void UHelicopterMovementComponent::UpdateVelocity(float DeltaTime)
@@ -206,8 +313,6 @@ void UHelicopterMovementComponent::UpdateVelocity(float DeltaTime)
 	ApplyGravityToVelocity(DeltaTime);
 	
 	ClampVelocityToMaxSpeed();
-
-	ApplyVelocityToLocation(DeltaTime);
 
 	ApplyVelocityDamping(DeltaTime);
 	

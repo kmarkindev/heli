@@ -28,15 +28,46 @@ USTRUCT(BlueprintType)
 struct FRotationData
 {
 	GENERATED_BODY()
+
+	// X - Pitch, Y - Roll, Z - Yaw
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	FVector AngularVelocity {};
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float PitchSpeed { 35.f };
-	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float RollSpeed { 35.f };
+	float PitchAcceleration { 25.f };
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	float YawSpeed { 35.f };
+	float PitchDeceleration { 25.f };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float PitchMaxSpeed { 35.f };
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+	float PitchPending { 0.f };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float RollAcceleration { 25.f };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float RollDeceleration { 25.f };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float RollMaxSpeed { 35.f };
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+	float RollPending { 0.f };
+	
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float YawAcceleration { 25.f };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float YawDeceleration { 25.f };
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	float YawMaxSpeed { 35.f };
+	
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+	float YawPending { 0.f };
 	
 };
 
@@ -144,8 +175,16 @@ private:
 	
 	void ClampVelocityToMaxSpeed();
 
-	void ApplyVelocityToLocation(float DeltaTime);
+	void ApplyVelocitiesToLocation(float DeltaTime);
 
 	float GetCurrentAngle() const;
+
+	void UpdateAngularVelocity(float DeltaTime);
+
+	bool ApplyAccelerationsToAngularVelocity(float DeltaTime);
+
+	void ApplyAngularVelocityDamping(float DeltaTime);
+
+	void ClampAngularVelocity();
 	
 };
