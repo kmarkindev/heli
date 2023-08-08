@@ -4,6 +4,7 @@
 #include "HelicopterMovementComponent.h"
 
 #include "Heli/LogHeli.h"
+#include "Heli/BFLs/HeliMathLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
 
 UHelicopterMovementComponent::UHelicopterMovementComponent()
@@ -203,7 +204,7 @@ void UHelicopterMovementComponent::UpdateAngularVelocity(float DeltaTime)
 		ApplyAngularVelocityDamping(DeltaTime);
 	}
 
-	//ClampAngularVelocity();
+	ClampAngularVelocity();
 }
 
 bool UHelicopterMovementComponent::ApplyAccelerationsToAngularVelocity(float DeltaTime)
@@ -310,43 +311,30 @@ void UHelicopterMovementComponent::ClampAngularVelocity()
 	if(!UpdatedPrimitive)
 		return;
 
-	// // Get transforms to convert to/from local space
-	// const FTransform ComponentTransform = UpdatedPrimitive->GetComponentTransform();
-	// const FTransform InversedComponentTransform = ComponentTransform.Inverse();
-	//
-	// // find local space rotation
-	// FRotator PhysicsAngularVelocity = FRotator::MakeFromEuler(UpdatedPrimitive->GetPhysicsAngularVelocityInDegrees());
-	// FRotator LocalAngularVelocity = UKismetMathLibrary::InverseTransformRotation(
-	// 	ComponentTransform,
-	// 	PhysicsAngularVelocity
-	// );
-	//
-	// // clamp it
-	// LocalAngularVelocity.Pitch = FMath::ClampAngle(
-	// 	LocalAngularVelocity.Pitch,
-	// 	-RotationData.PitchMaxSpeed,
-	// 	RotationData.PitchMaxSpeed
-	// );
-	//
-	// LocalAngularVelocity.Roll = FMath::ClampAngle(
-	// 	LocalAngularVelocity.Roll,
-	// 	-RotationData.RollMaxSpeed,
-	// 	RotationData.RollMaxSpeed
-	// );
-	//
-	// LocalAngularVelocity.Yaw = FMath::ClampAngle(
-	// 	LocalAngularVelocity.Yaw,
-	// 	-RotationData.YawMaxSpeed,
-	// 	RotationData.YawMaxSpeed
-	// );
-	//
-	// // convert it back to world space
-	// PhysicsAngularVelocity = UKismetMathLibrary::InverseTransformRotation(
-	// 	InversedComponentTransform,
-	// 	LocalAngularVelocity
-	// );
-	//
-	// UpdatedPrimitive->SetPhysicsAngularVelocityInDegrees(PhysicsAngularVelocity.Euler());
+	FRotator PhysicsAngularVelocity = FRotator::MakeFromEuler(UpdatedPrimitive->GetPhysicsAngularVelocityInDegrees());
+
+	UHeliMathLibrary::ClampVelocityAroundAxis(
+		PhysicsAngularVelocity,
+		UpdatedPrimitive->GetRightVector(),
+		-RotationData.PitchMaxSpeed,
+		RotationData.PitchMaxSpeed
+	);
+
+	UHeliMathLibrary::ClampVelocityAroundAxis(
+		PhysicsAngularVelocity,
+		UpdatedPrimitive->GetForwardVector(),
+		-RotationData.RollMaxSpeed,
+		RotationData.RollMaxSpeed
+	);
+	
+	UHeliMathLibrary::ClampVelocityAroundAxis(
+		PhysicsAngularVelocity,
+		UpdatedPrimitive->GetUpVector(),
+		-RotationData.YawMaxSpeed,
+		RotationData.YawMaxSpeed
+	);
+	
+	UpdatedPrimitive->SetPhysicsAngularVelocityInDegrees(PhysicsAngularVelocity.Euler());
 }
 
 void UHelicopterMovementComponent::ToggleDefaultDamping(bool bEnable)
