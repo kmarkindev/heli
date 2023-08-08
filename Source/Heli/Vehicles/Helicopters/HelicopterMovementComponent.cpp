@@ -212,43 +212,15 @@ bool UHelicopterMovementComponent::ApplyAccelerationsToAngularVelocity(float Del
 	if(!UpdatedPrimitive)
 		return false;
 	
-	const float PitchAcceleration = RotationData.PitchPending * RotationData.PitchAcceleration * DeltaTime;
-	const float RollAcceleration = RotationData.RollPending * RotationData.RollAcceleration * DeltaTime;
-	const float YawAcceleration = RotationData.YawPending * RotationData.YawAcceleration * DeltaTime;
-	
-	// Create local rotation
+	FVector Delta {
+		RotationData.RollPending * RotationData.RollAcceleration * DeltaTime,
+		RotationData.PitchPending * RotationData.PitchAcceleration * DeltaTime,
+		RotationData.YawPending * RotationData.YawAcceleration * DeltaTime
+	};
 
-	FRotator RotationToApply {};
+	const FTransform ComponentTransform = UpdatedPrimitive->GetComponentTransform();
+	Delta = UKismetMathLibrary::TransformDirection(ComponentTransform, Delta);
 	
-	// Apply pitch
-	RotationToApply = UKismetMathLibrary::ComposeRotators(
-		RotationToApply,
-		UKismetMathLibrary::RotatorFromAxisAndAngle(
-			UpdatedPrimitive->GetRightVector(),
-			PitchAcceleration
-		)
-	);
-
-	// Apply roll
-	RotationToApply = UKismetMathLibrary::ComposeRotators(
-		RotationToApply,
-		UKismetMathLibrary::RotatorFromAxisAndAngle(
-			UpdatedPrimitive->GetForwardVector(),
-			RollAcceleration
-		)
-	);
-	
-	// Apply yaw
-	RotationToApply = UKismetMathLibrary::ComposeRotators(
-		RotationToApply,
-		UKismetMathLibrary::RotatorFromAxisAndAngle(
-			UpdatedPrimitive->GetUpVector(),
-			YawAcceleration
-		)
-	);
-	
-	const FVector Delta = RotationToApply.Euler();
-
 	const bool bMoved = !Delta.IsNearlyZero();
 
 	// Do not touch velocity if we don't really need to
@@ -269,43 +241,40 @@ void UHelicopterMovementComponent::ApplyAngularVelocityDamping(float DeltaTime)
 	if(!UpdatedPrimitive)
 		return;
 
-	FRotator PhysicsAngularVelocity = FRotator::MakeFromEuler(UpdatedPrimitive->GetPhysicsAngularVelocityInDegrees());
-
-	auto Lambda = [&](const FVector& Axis, float Deceleration)
-	{
-		float AxisVelocity = UHeliMathLibrary::GetRotationAroundAxis(
-			PhysicsAngularVelocity,
-			Axis
-		);
-		
-		const int YawSign = FMath::Sign(AxisVelocity);
-		AxisVelocity += -YawSign
-			* Deceleration
-			* DeltaTime;
-		
-		UHeliMathLibrary::SetRotationAroundAxis(
-			PhysicsAngularVelocity,
-			Axis,
-			AxisVelocity
-		);
-	};
-
-	Lambda(
-	UpdatedPrimitive->GetRightVector(),
-		RotationData.PitchDeceleration
-	);
-
-	Lambda(
-	UpdatedPrimitive->GetForwardVector(),
-		RotationData.RollDeceleration
-	);
-
-	Lambda(
-	UpdatedPrimitive->GetUpVector(),
-		RotationData.YawDeceleration
-	);
+	FVector PhysicsAngularVelocity = UpdatedPrimitive->GetPhysicsAngularVelocityInDegrees();
 	
-	UpdatedPrimitive->SetPhysicsAngularVelocityInDegrees(PhysicsAngularVelocity.Euler());
+	const FTransform ComponentTransform = UpdatedPrimitive->GetComponentTransform();
+	const FTransform InversedComponentTransform = ComponentTransform.Inverse();
+	
+	FVector LocalAngularVelocity = UKismetMathLibrary::TransformDirection(InversedComponentTransform, PhysicsAngularVelocity);
+
+	const int RollSign = FMath::Sign(LocalAngularVelocity.X);
+	LocalAngularVelocity.X += -RollSign
+		* RotationData.RollDeceleration
+		* DeltaTime;
+	LocalAngularVelocity.X = RollSign == 1
+		? FMath::Max(0.f, LocalAngularVelocity.X)
+		: FMath::Min(0.f, LocalAngularVelocity.X);
+	
+	const int PitchSign = FMath::Sign(LocalAngularVelocity.Y);
+	LocalAngularVelocity.Y += -PitchSign
+		* RotationData.PitchDeceleration
+		* DeltaTime;
+	LocalAngularVelocity.Y = PitchSign == 1
+		? FMath::Max(0.f, LocalAngularVelocity.Y)
+		: FMath::Min(0.f, LocalAngularVelocity.Y);
+	
+	const int YawSign = FMath::Sign(LocalAngularVelocity.Z);
+	LocalAngularVelocity.Z += -YawSign
+		* RotationData.YawDeceleration
+		* DeltaTime;
+	LocalAngularVelocity.Z = YawSign == 1
+		? FMath::Max(0.f, LocalAngularVelocity.Z)
+		: FMath::Min(0.f, LocalAngularVelocity.Z);
+	
+	PhysicsAngularVelocity = UKismetMathLibrary::TransformDirection(ComponentTransform, LocalAngularVelocity);
+	
+	UpdatedPrimitive->SetPhysicsAngularVelocityInDegrees(PhysicsAngularVelocity);
 }
 
 void UHelicopterMovementComponent::ClampAngularVelocity()
@@ -313,30 +282,32 @@ void UHelicopterMovementComponent::ClampAngularVelocity()
 	if(!UpdatedPrimitive)
 		return;
 
-	FRotator PhysicsAngularVelocity = FRotator::MakeFromEuler(UpdatedPrimitive->GetPhysicsAngularVelocityInDegrees());
+	FVector PhysicsAngularVelocity = UpdatedPrimitive->GetPhysicsAngularVelocityInDegrees();
+	
+	const FTransform ComponentTransform = UpdatedPrimitive->GetComponentTransform();
+	const FTransform InversedComponentTransform = ComponentTransform.Inverse();
+	
+	FVector LocalAngularVelocity = UKismetMathLibrary::TransformDirection(InversedComponentTransform, PhysicsAngularVelocity);
 
-	UHeliMathLibrary::ClampVelocityAroundAxis(
-		PhysicsAngularVelocity,
-		UpdatedPrimitive->GetRightVector(),
-		-RotationData.PitchMaxSpeed,
-		RotationData.PitchMaxSpeed
-	);
-
-	UHeliMathLibrary::ClampVelocityAroundAxis(
-		PhysicsAngularVelocity,
-		UpdatedPrimitive->GetForwardVector(),
+	LocalAngularVelocity.X = FMath::Clamp(
+		LocalAngularVelocity.X,
 		-RotationData.RollMaxSpeed,
 		RotationData.RollMaxSpeed
 	);
-	
-	UHeliMathLibrary::ClampVelocityAroundAxis(
-		PhysicsAngularVelocity,
-		UpdatedPrimitive->GetUpVector(),
+	LocalAngularVelocity.Y = FMath::Clamp(
+		LocalAngularVelocity.Y,
+		-RotationData.PitchMaxSpeed,
+		RotationData.PitchMaxSpeed
+	);
+	LocalAngularVelocity.Z = FMath::Clamp(
+		LocalAngularVelocity.Z,
 		-RotationData.YawMaxSpeed,
 		RotationData.YawMaxSpeed
 	);
 	
-	UpdatedPrimitive->SetPhysicsAngularVelocityInDegrees(PhysicsAngularVelocity.Euler());
+	PhysicsAngularVelocity = UKismetMathLibrary::TransformDirection(ComponentTransform, LocalAngularVelocity);
+	
+	UpdatedPrimitive->SetPhysicsAngularVelocityInDegrees(PhysicsAngularVelocity);
 }
 
 void UHelicopterMovementComponent::ToggleDefaultDamping(bool bEnable)
@@ -346,7 +317,7 @@ void UHelicopterMovementComponent::ToggleDefaultDamping(bool bEnable)
 		if(!bEnable)
 		{
 			UpdatedPrimitive->SetLinearDamping(0.f);
-			UpdatedPrimitive->SetAngularDamping(0.f);
+			UpdatedPrimitive->SetAngularDamping(0.01f);
 		}
 		else
 		{
