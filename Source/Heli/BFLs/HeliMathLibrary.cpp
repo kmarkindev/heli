@@ -25,8 +25,7 @@ void UHeliMathLibrary::SetRotationAroundAxis(FRotator& Rotator, const FVector& A
 	Rotator = UKismetMathLibrary::ComposeRotators(Rotator, DeltaRotation);
 }
 
-void UHeliMathLibrary::ClampVelocityAroundAxis(FRotator& Rotator, const FVector& Axis, float Min,
-	float Max)
+void UHeliMathLibrary::ClampVelocityAroundAxis(FRotator& Rotator, const FVector& Axis, float Min, float Max)
 {
 	const float Current = GetRotationAroundAxis(Rotator, Axis);
 	const float Target = FMath::Clamp(Current, Min, Max);

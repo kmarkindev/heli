@@ -269,41 +269,43 @@ void UHelicopterMovementComponent::ApplyAngularVelocityDamping(float DeltaTime)
 	if(!UpdatedPrimitive)
 		return;
 
-	// // Get transforms to convert to/from local space
-	// const FTransform ComponentTransform = UpdatedPrimitive->GetComponentTransform();
-	// const FTransform InversedComponentTransform = ComponentTransform.Inverse();
-	//
-	// // find local angular velocity
-	// FRotator PhysicsAngularVelocity = FRotator::MakeFromEuler(UpdatedPrimitive->GetPhysicsAngularVelocityInDegrees());
-	// FRotator LocalAngularVelocity = UKismetMathLibrary::InverseTransformRotation(
-	// 	ComponentTransform,
-	// 	PhysicsAngularVelocity
-	// );
-	//
-	// // damp it
-	// const int PitchSign = FMath::Sign(LocalAngularVelocity.Pitch); 
-	// LocalAngularVelocity.Pitch += -PitchSign
-	// 	* RotationData.PitchDeceleration
-	// 	* DeltaTime;
-	//
-	// const int RollSign = FMath::Sign(LocalAngularVelocity.Roll);
-	// LocalAngularVelocity.Roll += -RollSign
-	// 	* RotationData.RollDeceleration
-	// 	* DeltaTime;
-	//
-	// const int YawSign = FMath::Sign(LocalAngularVelocity.Yaw);
-	// LocalAngularVelocity.Yaw += -YawSign
-	// 	* RotationData.YawDeceleration
-	// 	* DeltaTime;
-	//
-	// // convert damped local angular velocity back to world space angular velocity
-	// PhysicsAngularVelocity = UKismetMathLibrary::InverseTransformRotation(
-	// 	InversedComponentTransform,
-	// 	LocalAngularVelocity
-	// );
+	FRotator PhysicsAngularVelocity = FRotator::MakeFromEuler(UpdatedPrimitive->GetPhysicsAngularVelocityInDegrees());
 
+	auto Lambda = [&](const FVector& Axis, float Deceleration)
+	{
+		float AxisVelocity = UHeliMathLibrary::GetRotationAroundAxis(
+			PhysicsAngularVelocity,
+			Axis
+		);
+		
+		const int YawSign = FMath::Sign(AxisVelocity);
+		AxisVelocity += -YawSign
+			* Deceleration
+			* DeltaTime;
+		
+		UHeliMathLibrary::SetRotationAroundAxis(
+			PhysicsAngularVelocity,
+			Axis,
+			AxisVelocity
+		);
+	};
 
-	//UpdatedPrimitive->SetPhysicsAngularVelocityInDegrees(PhysicsAngularVelocity.Euler());
+	Lambda(
+	UpdatedPrimitive->GetRightVector(),
+		RotationData.PitchDeceleration
+	);
+
+	Lambda(
+	UpdatedPrimitive->GetForwardVector(),
+		RotationData.RollDeceleration
+	);
+
+	Lambda(
+	UpdatedPrimitive->GetUpVector(),
+		RotationData.YawDeceleration
+	);
+	
+	UpdatedPrimitive->SetPhysicsAngularVelocityInDegrees(PhysicsAngularVelocity.Euler());
 }
 
 void UHelicopterMovementComponent::ClampAngularVelocity()
