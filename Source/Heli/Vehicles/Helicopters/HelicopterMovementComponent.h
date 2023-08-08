@@ -28,10 +28,6 @@ USTRUCT(BlueprintType)
 struct FRotationData
 {
 	GENERATED_BODY()
-
-	// X - Pitch, Y - Roll, Z - Yaw
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FVector AngularVelocity {};
 	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float PitchAcceleration { 25.f };
@@ -79,6 +75,15 @@ struct FPhysicsData
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float GravityZAcceleration { USpeedConversionsLibrary::MsToCms(-9.8f) };
 
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
+	float DefaultLinearDamping { 0.5f };
+
+	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
+	float DefaultAngularDamping { 0.5f };
+
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+	bool bIsDefaultDampingEnabled { false };
+	
 	// Max speed in all directions, even facing straight down
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	float MaxSpeed { USpeedConversionsLibrary::KmhToCms(320.f) };
@@ -146,7 +151,11 @@ public:
 	virtual float GetMaxSpeed() const override;
 
 	float GetActualMass() const;
-	
+
+	virtual void UpdateComponentVelocity() override;
+
+	virtual void InitializeComponent() override;
+
 protected:
 	
 	UPROPERTY(BlueprintReadOnly, EditAnywhere)
@@ -175,8 +184,6 @@ private:
 	
 	void ClampVelocityToMaxSpeed();
 
-	void ApplyVelocitiesToLocation(float DeltaTime);
-
 	float GetCurrentAngle() const;
 
 	void UpdateAngularVelocity(float DeltaTime);
@@ -186,5 +193,7 @@ private:
 	void ApplyAngularVelocityDamping(float DeltaTime);
 
 	void ClampAngularVelocity();
+
+	void ToggleDefaultDamping(bool bEnable);
 	
 };

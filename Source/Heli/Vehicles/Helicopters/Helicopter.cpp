@@ -38,12 +38,11 @@ void AHelicopter::ConfigHelicopterMesh()
 {
 	if(HelicopterMeshComponent)
 	{
-		HelicopterMeshComponent->SetCollisionProfileName("Pawn", false);
-		HelicopterMeshComponent->SetSimulatePhysics(false);
+		HelicopterMeshComponent->SetCollisionProfileName("Pawn", true);
 	}
 	else
 	{
-		HELI_ERR("Can't initialize helicopter %s because it has no skeletal mesh or physics asset", *GetName());
+		HELI_ERR("Can't initialize helicopter %s because it has no skeletal mesh", *GetName());
 	}
 }
 
@@ -58,14 +57,6 @@ void AHelicopter::PostInitializeComponents()
 
 	ConfigHelicopterMesh();
 	ConfigCameraAndSpringArm();
-}
-
-FVector AHelicopter::GetVelocity() const
-{
-	// Base Pawn::GetVelocity searches for UPawnMovement->Velocity or takes component vel only when physics sim enabled,
-	// but we want to get velocity from component in both cases: with and without physics sim enabled
-	
-	return GetRootComponent()->GetComponentVelocity();
 }
 
 void AHelicopter::ConfigCameraAndSpringArm()

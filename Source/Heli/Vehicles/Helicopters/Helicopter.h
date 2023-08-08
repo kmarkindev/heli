@@ -31,8 +31,6 @@ public:
 
 	virtual void PostInitializeComponents() override;
 
-	virtual FVector GetVelocity() const override;
-
 protected:
 
 	UPROPERTY()
