@@ -24,6 +24,13 @@ float UHeliConversionsLibrary::MsToCms(float Kms)
 	return Kms * Ratio;
 }
 
+float UHeliConversionsLibrary::CmsToMs(float Cms)
+{
+	const float Ratio = 100.f;
+
+	return Cms / Ratio;
+}
+
 float UHeliConversionsLibrary::CmsToKmh(float Cms)
 {
 	const float Ratio = 0.036f;

@@ -188,6 +188,9 @@ protected:
 	
 	virtual void BeginPlay() override;
 
+	UFUNCTION(CallInEditor, Category="Utils")
+	void CalculateForceNeededToStartGoingUp() const;
+
 private:
 	
 	float CalculateForceAmountBasedOnCollective() const;

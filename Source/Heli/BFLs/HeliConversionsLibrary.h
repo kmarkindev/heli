@@ -31,6 +31,9 @@ public:
 	static float MsToCms(float Kms);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
+	static float CmsToMs(float Cms);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
 	static float CmsToKmh(float Cms);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)

@@ -3,9 +3,9 @@
 
 #include "HelicopterMovementComponent.h"
 
+#include "EditorDialogLibrary.h"
 #include "Heli/LogHeli.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "Kismet/KismetSystemLibrary.h"
 
 UHelicopterMovementComponent::UHelicopterMovementComponent()
 {
@@ -24,6 +24,30 @@ UHelicopterMovementComponent::UHelicopterMovementComponent()
 void UHelicopterMovementComponent::BeginPlay()
 {
 	Super::BeginPlay();
+}
+
+void UHelicopterMovementComponent::CalculateForceNeededToStartGoingUp() const
+{
+	const float ActualMass = GetActualMass();
+
+	const float GravityZ = UHeliConversionsLibrary::CmsToMs(GetGravityZ());
+	const float ForceNeeded = UHeliConversionsLibrary::AccelMsAndMassToForce(-GravityZ + 1.f, ActualMass);
+	const float Percent = ForceNeeded / PhysicsData.LiftForceFromMaxCollective * 100.f;
+
+	const FString Result = FString::Printf(
+	TEXT("For an actual mass %fkg, you need to apply a force %fN to start going up."
+			" For specified LiftForceFromMaxCollective (%fN) it's %f%%."
+			" Note: It doesn't take into account decelerations, only gravity."),
+		ActualMass,
+		ForceNeeded,
+		PhysicsData.LiftForceFromMaxCollective,
+		Percent);
+
+	UEditorDialogLibrary::ShowMessage(
+		FText::FromString(TEXT("Result")),
+		FText::FromString(Result),
+		EAppMsgType::Ok
+	);
 }
 
 float UHelicopterMovementComponent::CalculateForceAmountBasedOnCollective() const
