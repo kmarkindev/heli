@@ -5,6 +5,7 @@
 
 #include "Heli/LogHeli.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 UHelicopterMovementComponent::UHelicopterMovementComponent()
 {
@@ -70,7 +71,7 @@ FVector UHelicopterMovementComponent::CalculateCurrentCollectiveAccelerationVect
 	const FVector AccelerationDirection = GetOwner()->GetActorUpVector();
 	const float CurrentCollocationForceAmount = CalculateForceAmountBasedOnCollective();
 	
-	const float Acceleration = USpeedConversionsLibrary::MsToCms(CurrentCollocationForceAmount / GetActualMass());
+	const float Acceleration = UHeliConversionsLibrary::MsToCms(CurrentCollocationForceAmount / GetActualMass());
 	
 	FVector FinalAcceleration = AccelerationDirection * Acceleration;
 	
@@ -125,6 +126,28 @@ float UHelicopterMovementComponent::GetCurrentCollective() const
 	return CollectiveData.CurrentCollective;
 }
 
+float UHelicopterMovementComponent::GetCurrentAltitude() const
+{
+	if(!UpdatedPrimitive)
+		return 0.f;
+
+	UWorld* World = GetWorld();
+	if(!World)
+		return 0.f;
+	
+	FVector Start = UpdatedPrimitive->GetComponentLocation();
+	FVector Direction = {0.f, 0.f, -1.f};
+	float Distance = 1000.f * 100.f; // 1000 kilometers
+	FVector End = Start + Direction * Distance;
+
+	FHitResult HitResult {};
+	bool bBlocked = World->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility);
+	if(!bBlocked)
+		return Distance;
+
+	return FMath::Max((HitResult.ImpactPoint - Start).Length() + AltitudeOffset, 0.f);
+}
+
 void UHelicopterMovementComponent::UpdateComponentVelocity()
 {
 	if(UpdatedPrimitive)
@@ -166,9 +189,9 @@ void UHelicopterMovementComponent::ApplyVelocityDamping(float DeltaTime)
 	
 	// Apply horizontal air friction
 	// Note: Horizontal Speed is always positive
-	const float HorizontalSpeed = USpeedConversionsLibrary::CmsToKmh(PhysicsVelocity.Size2D());
+	const float HorizontalSpeed = UHeliConversionsLibrary::CmsToKmh(PhysicsVelocity.Size2D());
 	const float HorizontalAirFrictionDeceleration = PhysicsData.HorizontalAirFrictionDecelerationToVelocityCurve
-		? USpeedConversionsLibrary::KmhToCms(
+		? UHeliConversionsLibrary::KmhToCms(
 			PhysicsData.HorizontalAirFrictionDecelerationToVelocityCurve->GetFloatValue(HorizontalSpeed)
 		)
 		: 0.f;
@@ -177,9 +200,9 @@ void UHelicopterMovementComponent::ApplyVelocityDamping(float DeltaTime)
 
 	// Apply vertical air friction
 	// Note: Vertical Speed may be negative (in case of falling)
-	const float VerticalSpeed = USpeedConversionsLibrary::CmsToKmh(PhysicsVelocity.Z);
+	const float VerticalSpeed = UHeliConversionsLibrary::CmsToKmh(PhysicsVelocity.Z);
 	const float VerticalAirFrictionDeceleration = PhysicsData.VerticalAirFrictionDecelerationToVelocityCurve
-		? USpeedConversionsLibrary::KmhToCms(
+		? UHeliConversionsLibrary::KmhToCms(
 			PhysicsData.VerticalAirFrictionDecelerationToVelocityCurve->GetFloatValue(VerticalSpeed)
 		)
 		: 0.f;
@@ -316,7 +339,7 @@ void UHelicopterMovementComponent::ClampAngularVelocity()
 	
 	FVector LocalAngularVelocity = UKismetMathLibrary::TransformDirection(InversedComponentTransform, PhysicsAngularVelocity);
 
-	const float HorizontalVelocity = USpeedConversionsLibrary::CmsToKmh(
+	const float HorizontalVelocity = UHeliConversionsLibrary::CmsToKmh(
 		UpdatedPrimitive->GetPhysicsLinearVelocity().Size2D()
 	);
 	const float YawMaxSpeedScale = RotationData.YawMaxSpeedScaleFromVelocityCurve

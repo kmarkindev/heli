@@ -5,8 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "GameFramework/MovementComponent.h"
-#include "Heli/BFLs/PhysicsConvertionsLibrary.h"
-#include "Heli/BFLs/SpeedConversionsLibrary.h"
+#include "Heli/BFLs/HeliConversionsLibrary.h"
 #include "HelicopterMovementComponent.generated.h"
 
 USTRUCT(BlueprintType)
@@ -76,11 +75,11 @@ struct FPhysicsData
 	GENERATED_BODY()
 	
 	UPROPERTY(EditAnywhere)
-	float GravityZAcceleration { USpeedConversionsLibrary::MsToCms(-9.8f) };
+	float GravityZAcceleration { UHeliConversionsLibrary::MsToCms(-9.8f) };
 	
 	// Max speed in all directions, even facing straight down
 	UPROPERTY(EditAnywhere)
-	float MaxSpeed { USpeedConversionsLibrary::KmhToCms(320.f) };
+	float MaxSpeed { UHeliConversionsLibrary::KmhToCms(320.f) };
 
 	UPROPERTY(EditAnywhere)
 	float AverageMaxSpeedScale { 0.8f };
@@ -162,6 +161,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	float GetCurrentCollective() const;
 
+	UFUNCTION(BlueprintCallable)
+	float GetCurrentAltitude() const;
+
 	virtual void UpdateComponentVelocity() override;
 
 	virtual void InitializeComponent() override;
@@ -176,6 +178,13 @@ protected:
 
 	UPROPERTY(EditAnywhere)
 	FRotationData RotationData {};
+
+	// Use it to correct calculated altitude
+	// e.g. center of heli object is not on ground level, but inside a heli so it adds a couple of meters
+	// when it should not
+	// Negative altitude is being clamped, feel free to use negative values here 
+	UPROPERTY(EditAnywhere)
+	float AltitudeOffset { 0.f };
 	
 	virtual void BeginPlay() override;
 
