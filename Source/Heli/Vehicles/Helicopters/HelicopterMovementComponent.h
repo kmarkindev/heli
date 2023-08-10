@@ -14,13 +14,13 @@ struct FCollectiveData
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta=(ClampMin=0.0, ClampMax=1.0))
+	UPROPERTY(EditAnywhere, meta=(ClampMin=0.0, ClampMax=1.0))
 	float CurrentCollective { 0.f };
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	float CollectiveIncreaseSpeed { 0.45f };
 	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	float CollectiveDecreaseSpeed { 0.45f };
 };
 
@@ -29,40 +29,40 @@ struct FRotationData
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	float PitchAcceleration { 25.f };
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	float PitchDeceleration { 25.f };
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	float PitchMaxSpeed { 35.f };
 
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere)
 	float PitchPending { 0.f };
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	float RollAcceleration { 25.f };
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	float RollDeceleration { 25.f };
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	float RollMaxSpeed { 35.f };
 
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere)
 	float RollPending { 0.f };
 	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	float YawAcceleration { 25.f };
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	float YawDeceleration { 25.f };
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	float YawMaxSpeed { 35.f };
 	
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere)
 	float YawPending { 0.f };
 	
 };
@@ -72,50 +72,44 @@ struct FPhysicsData
 {
 	GENERATED_BODY()
 	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	float GravityZAcceleration { USpeedConversionsLibrary::MsToCms(-9.8f) };
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
-	float DefaultLinearDamping { 0.5f };
-
-	UPROPERTY(BlueprintReadWrite, EditDefaultsOnly)
-	float DefaultAngularDamping { 0.5f };
-
-	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
-	bool bIsDefaultDampingEnabled { false };
 	
 	// Max speed in all directions, even facing straight down
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	float MaxSpeed { USpeedConversionsLibrary::KmhToCms(320.f) };
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	float AverageMaxSpeedScale { 0.8f };
 
 	// Mass of helicopter itself, without cargo
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditDefaultsOnly)
 	float MassKg { 0.f };
 	
 	// Add mass here if you need to simulate some heavy cargo
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditDefaultsOnly)
 	float AdditionalMassKg { 0.f };
 	
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditDefaultsOnly)
+	float MaxAdditionalMassKg { 0.f };
+	
+	UPROPERTY(EditAnywhere)
 	float LiftForceFromMaxCollective { 0.f };
 
 	// It's better to start making it from two keys: (0; 0) (1;0)
 	// then place new key at 0.45 and set it's scale so helicopter is going to start going up at this key
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	TObjectPtr<UCurveFloat> LiftForceScaleFromCollectiveCurve {};
 
 	// It gets angle between world Up and component Up and passes it to the curve to find lift scale
 	// we need it to not allow helicopter to fly on pitch = 60 using max collective
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	TObjectPtr<UCurveFloat> LiftScaleFromRotationCurve {};
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	TObjectPtr<UCurveFloat> HorizontalAirFrictionDecelerationToVelocityCurve {};
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	TObjectPtr<UCurveFloat> VerticalAirFrictionDecelerationToVelocityCurve {};
 	
 };
@@ -145,12 +139,25 @@ public:
 	void AddRotation(float PitchIntensity, float YawIntensity, float RollIntensity);
 	
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
+	
 	virtual float GetGravityZ() const override;
 	
 	virtual float GetMaxSpeed() const override;
 
+	UFUNCTION(BlueprintCallable)
+	float GetRawMass() const;
+	
+	UFUNCTION(BlueprintCallable)
 	float GetActualMass() const;
+
+	UFUNCTION(BlueprintCallable)
+	float GetAdditionalMass() const;
+
+	UFUNCTION(BlueprintCallable)
+	void SetAdditionalMass(float NewMass, bool bAddToCurrent = false);
+
+	UFUNCTION(BlueprintCallable)
+	float GetCurrentCollective() const;
 
 	virtual void UpdateComponentVelocity() override;
 
@@ -158,13 +165,13 @@ public:
 
 protected:
 	
-	UPROPERTY(BlueprintReadOnly, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	FPhysicsData PhysicsData {};
 	
-	UPROPERTY(BlueprintReadOnly, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	FCollectiveData CollectiveData {};
 
-	UPROPERTY(BlueprintReadOnly, EditAnywhere)
+	UPROPERTY(EditAnywhere)
 	FRotationData RotationData {};
 	
 	virtual void BeginPlay() override;
@@ -194,6 +201,6 @@ private:
 
 	void ClampAngularVelocity();
 
-	void ToggleDefaultDamping(bool bEnable);
+	void SyncPhysicsAndComponentMass();
 	
 };

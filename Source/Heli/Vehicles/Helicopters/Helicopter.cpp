@@ -39,6 +39,7 @@ void AHelicopter::ConfigHelicopterMesh()
 	if(HelicopterMeshComponent)
 	{
 		HelicopterMeshComponent->SetCollisionProfileName("Pawn", true);
+		HelicopterMeshComponent->SetPhysMaterialOverride(HelicopterPhysicalMaterial);
 	}
 	else
 	{
@@ -57,6 +58,46 @@ void AHelicopter::PostInitializeComponents()
 
 	ConfigHelicopterMesh();
 	ConfigCameraAndSpringArm();
+}
+
+void AHelicopter::SetAdditionalMass(float NewMass, bool bAddToCurrent)
+{
+	if(!HelicopterMovementComponent)
+		return;
+	
+	return HelicopterMovementComponent->SetAdditionalMass(NewMass, bAddToCurrent);
+}
+
+float AHelicopter::GetAdditionalMass() const
+{
+	if(!HelicopterMovementComponent)
+		return 0.f;
+	
+	return HelicopterMovementComponent->GetAdditionalMass();
+}
+
+float AHelicopter::GetRawMass() const
+{
+	if(!HelicopterMovementComponent)
+		return 0.f;
+	
+	return HelicopterMovementComponent->GetRawMass();
+}
+
+float AHelicopter::GetActualMass() const
+{
+	if(!HelicopterMovementComponent)
+		return 0.f;
+	
+	return HelicopterMovementComponent->GetActualMass();
+}
+
+float AHelicopter::GetCurrentCollective() const
+{
+	if(!HelicopterMovementComponent)
+		return 0.f;
+
+	return HelicopterMovementComponent->GetCurrentCollective();
 }
 
 void AHelicopter::ConfigCameraAndSpringArm()

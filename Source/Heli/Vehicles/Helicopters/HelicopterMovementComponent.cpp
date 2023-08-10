@@ -4,7 +4,6 @@
 #include "HelicopterMovementComponent.h"
 
 #include "Heli/LogHeli.h"
-#include "Heli/BFLs/HeliMathLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
 
 UHelicopterMovementComponent::UHelicopterMovementComponent()
@@ -96,9 +95,34 @@ float UHelicopterMovementComponent::GetMaxSpeed() const
 	return PhysicsData.MaxSpeed;
 }
 
+float UHelicopterMovementComponent::GetRawMass() const
+{
+	return PhysicsData.MassKg;
+}
+
 float UHelicopterMovementComponent::GetActualMass() const
 {
 	return PhysicsData.MassKg + PhysicsData.AdditionalMassKg;
+}
+
+float UHelicopterMovementComponent::GetAdditionalMass() const
+{
+	return PhysicsData.AdditionalMassKg;
+}
+
+void UHelicopterMovementComponent::SetAdditionalMass(float NewMass, bool bAddToCurrent)
+{
+	if(bAddToCurrent)
+		NewMass += PhysicsData.AdditionalMassKg;
+
+	PhysicsData.AdditionalMassKg = FMath::Clamp(NewMass, 0.f, PhysicsData.MaxAdditionalMassKg);
+
+	SyncPhysicsAndComponentMass();
+}
+
+float UHelicopterMovementComponent::GetCurrentCollective() const
+{
+	return CollectiveData.CurrentCollective;
 }
 
 void UHelicopterMovementComponent::UpdateComponentVelocity()
@@ -119,7 +143,10 @@ void UHelicopterMovementComponent::InitializeComponent()
 	{
 		UpdatedPrimitive->SetSimulatePhysics(true);
 		UpdatedPrimitive->SetEnableGravity(false);
-		ToggleDefaultDamping(false);
+		UpdatedPrimitive->SetLinearDamping(0.f);
+		UpdatedPrimitive->SetAngularDamping(0.01f);
+
+		SyncPhysicsAndComponentMass();
 	}
 	else
 	{
@@ -310,23 +337,12 @@ void UHelicopterMovementComponent::ClampAngularVelocity()
 	UpdatedPrimitive->SetPhysicsAngularVelocityInDegrees(PhysicsAngularVelocity);
 }
 
-void UHelicopterMovementComponent::ToggleDefaultDamping(bool bEnable)
+void UHelicopterMovementComponent::SyncPhysicsAndComponentMass()
 {
-	if(UpdatedPrimitive)
-	{
-		if(!bEnable)
-		{
-			UpdatedPrimitive->SetLinearDamping(0.f);
-			UpdatedPrimitive->SetAngularDamping(0.01f);
-		}
-		else
-		{
-			UpdatedPrimitive->SetLinearDamping(PhysicsData.DefaultLinearDamping);
-			UpdatedPrimitive->SetAngularDamping(PhysicsData.DefaultAngularDamping);
-		}
+	if(!UpdatedPrimitive)
+		return;
 
-		PhysicsData.bIsDefaultDampingEnabled = bEnable;
-	}
+	UpdatedPrimitive->SetMassOverrideInKg(NAME_None, GetActualMass(), true);
 }
 
 void UHelicopterMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)

@@ -31,6 +31,13 @@ public:
 
 	virtual void PostInitializeComponents() override;
 
+	void SetAdditionalMass(float NewMass, bool bAddToCurrent = false);
+	float GetAdditionalMass() const;
+	float GetRawMass() const;
+	float GetActualMass() const;
+
+	float GetCurrentCollective() const;
+
 protected:
 
 	UPROPERTY()
@@ -39,14 +46,17 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UCameraComponent> CameraComponent {};
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UHelicopterRootMeshComponent> HelicopterMeshComponent {};
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UHelicopterMovementComponent> HelicopterMovementComponent {};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UCameraLookAroundComponent> CameraLookAroundComponent {};
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TObjectPtr<UPhysicalMaterial> HelicopterPhysicalMaterial {};
 	
 	virtual void BeginPlay() override;
 	
