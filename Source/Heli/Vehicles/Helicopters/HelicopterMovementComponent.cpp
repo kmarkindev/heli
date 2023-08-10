@@ -316,6 +316,14 @@ void UHelicopterMovementComponent::ClampAngularVelocity()
 	
 	FVector LocalAngularVelocity = UKismetMathLibrary::TransformDirection(InversedComponentTransform, PhysicsAngularVelocity);
 
+	const float HorizontalVelocity = USpeedConversionsLibrary::CmsToKmh(
+		UpdatedPrimitive->GetPhysicsLinearVelocity().Size2D()
+	);
+	const float YawMaxSpeedScale = RotationData.YawMaxSpeedScaleFromVelocityCurve
+		? RotationData.YawMaxSpeedScaleFromVelocityCurve->GetFloatValue(HorizontalVelocity)
+		: 1.f;
+	const float ScaledYawMaxSpeed = RotationData.YawMaxSpeed * YawMaxSpeedScale;
+	
 	LocalAngularVelocity.X = FMath::Clamp(
 		LocalAngularVelocity.X,
 		-RotationData.RollMaxSpeed,
@@ -328,8 +336,8 @@ void UHelicopterMovementComponent::ClampAngularVelocity()
 	);
 	LocalAngularVelocity.Z = FMath::Clamp(
 		LocalAngularVelocity.Z,
-		-RotationData.YawMaxSpeed,
-		RotationData.YawMaxSpeed
+		-ScaledYawMaxSpeed,
+		ScaledYawMaxSpeed
 	);
 	
 	PhysicsAngularVelocity = UKismetMathLibrary::TransformDirection(ComponentTransform, LocalAngularVelocity);

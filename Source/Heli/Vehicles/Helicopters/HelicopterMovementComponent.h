@@ -64,6 +64,9 @@ struct FRotationData
 	
 	UPROPERTY(VisibleAnywhere)
 	float YawPending { 0.f };
+
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UCurveFloat> YawMaxSpeedScaleFromVelocityCurve {};
 	
 };
 
