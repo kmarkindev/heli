@@ -1,7 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-
-#include "Helicopter.h"
+﻿#include "Helicopter.h"
 
 #include "HelicopterMovementComponent.h"
 #include "HelicopterRootMeshComponent.h"

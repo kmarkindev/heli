@@ -1,7 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-
-#include "HeliMathLibrary.h"
+﻿#include "HeliMathLibrary.h"
 
 #include "Kismet/KismetMathLibrary.h"
 

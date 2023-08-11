@@ -1,7 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-
-#include "HeliConversionsLibrary.h"
+﻿#include "HeliConversionsLibrary.h"
 
 float UHeliConversionsLibrary::KmhToCms(float Kmh)
 {

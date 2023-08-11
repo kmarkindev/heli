@@ -1,7 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-
-#include "HelicopterMovementComponent.h"
+﻿#include "HelicopterMovementComponent.h"
 
 #include "EditorDialogLibrary.h"
 #include "Heli/LogHeli.h"

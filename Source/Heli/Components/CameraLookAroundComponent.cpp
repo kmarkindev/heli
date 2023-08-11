@@ -1,7 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
-
-
-#include "CameraLookAroundComponent.h"
+﻿#include "CameraLookAroundComponent.h"
 
 #include "Heli/LogHeli.h"
 #include "Kismet/KismetMathLibrary.h"
