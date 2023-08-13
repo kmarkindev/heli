@@ -6,7 +6,6 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Heli/LogHeli.h"
 #include "Heli/Components/CameraLookAroundComponent.h"
-#include "Kismet/KismetMathLibrary.h"
 
 AHelicopter::AHelicopter()
 {
