@@ -29,11 +29,29 @@ public:
 
 	virtual void PostInitializeComponents() override;
 
+	UFUNCTION(BlueprintCallable)
+
 	void SetAdditionalMass(float NewMass, bool bAddToCurrent = false);
+	
+	UFUNCTION(BlueprintCallable)
 	float GetAdditionalMass() const;
+
+	UFUNCTION(BlueprintCallable)
 	float GetRawMass() const;
+
+	UFUNCTION(BlueprintCallable)
 	float GetActualMass() const;
 
+	UFUNCTION(BlueprintCallable)
+	float GetVerticalSpeed() const;
+
+	UFUNCTION(BlueprintCallable)
+	float GetHorizontalSpeed() const;
+
+	UFUNCTION(BlueprintCallable)
+	float GetAltitude() const;
+
+	UFUNCTION(BlueprintCallable)
 	float GetCurrentCollective() const;
 
 protected:

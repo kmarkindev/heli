@@ -6,6 +6,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Heli/LogHeli.h"
 #include "Heli/Components/CameraLookAroundComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 
 AHelicopter::AHelicopter()
 {
@@ -87,6 +88,24 @@ float AHelicopter::GetActualMass() const
 		return 0.f;
 	
 	return HelicopterMovementComponent->GetActualMass();
+}
+
+float AHelicopter::GetVerticalSpeed() const
+{
+	return GetVelocity().Z;
+}
+
+float AHelicopter::GetHorizontalSpeed() const
+{
+	return GetVelocity().Size2D();
+}
+
+float AHelicopter::GetAltitude() const
+{
+	if(!HelicopterMovementComponent)
+		return 0.f;
+
+	return HelicopterMovementComponent->GetCurrentAltitude();
 }
 
 float AHelicopter::GetCurrentCollective() const
