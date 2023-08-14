@@ -37,6 +37,8 @@ void AHelicopter::ConfigHelicopterMesh()
 	{
 		HelicopterMeshComponent->SetCollisionProfileName("Pawn", true);
 		HelicopterMeshComponent->SetPhysMaterialOverride(HelicopterPhysicalMaterial);
+		HelicopterMeshComponent->SetGenerateOverlapEvents(true);
+		HelicopterMeshComponent->SetNotifyRigidBodyCollision(true);
 	}
 	else
 	{

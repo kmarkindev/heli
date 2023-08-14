@@ -4,6 +4,7 @@
 #include "GameFramework/Pawn.h"
 #include "Helicopter.generated.h"
 
+class UHelicopterDestroyComponent;
 class UHelicopterRootMeshComponent;
 class UCameraLookAroundComponent;
 class UCameraComponent;
@@ -20,6 +21,7 @@ public:
 	inline static FName HelicopterMeshComponentName { TEXT("HelicopterMeshComponent") };
 	inline static FName HelicopterMovementComponentName { TEXT("HelicopterMovementComponent") };
 	inline static FName CameraLookAroundComponentName { TEXT("CameraLookAroundComponent") };
+	inline static FName HelicopterDestroyComponentName { TEXT("HelicopterDestroyComponent") };
 	inline static FName SpringArmComponentName { TEXT("SpringArmComponent") };
 	inline static FName CameraComponentName { TEXT("CameraComponent") };
 	
@@ -70,7 +72,7 @@ protected:
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UHelicopterMovementComponent> HelicopterMovementComponent {};
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UCameraLookAroundComponent> CameraLookAroundComponent {};
 
