@@ -157,6 +157,9 @@ public:
 	void SetAdditionalMass(float NewMass, bool bAddToCurrent = false);
 
 	UFUNCTION(BlueprintCallable)
+	float GetMaxAdditionalMass() const;
+
+	UFUNCTION(BlueprintCallable)
 	float GetCurrentCollective() const;
 
 	UFUNCTION(BlueprintCallable)

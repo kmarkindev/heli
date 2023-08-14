@@ -73,6 +73,14 @@ float AHelicopter::GetAdditionalMass() const
 	return HelicopterMovementComponent->GetAdditionalMass();
 }
 
+float AHelicopter::GetMaxAdditionalMass() const
+{
+	if(!HelicopterMovementComponent)
+		return 0.f;
+
+	return HelicopterMovementComponent->GetMaxAdditionalMass();
+}
+
 float AHelicopter::GetRawMass() const
 {
 	if(!HelicopterMovementComponent)

@@ -35,7 +35,10 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	float GetAdditionalMass() const;
-
+	
+	UFUNCTION(BlueprintCallable)
+	float GetMaxAdditionalMass() const;
+	
 	UFUNCTION(BlueprintCallable)
 	float GetRawMass() const;
 

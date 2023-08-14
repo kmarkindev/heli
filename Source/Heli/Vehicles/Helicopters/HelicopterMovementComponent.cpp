@@ -142,6 +142,11 @@ void UHelicopterMovementComponent::SetAdditionalMass(float NewMass, bool bAddToC
 	SyncPhysicsAndComponentMass();
 }
 
+float UHelicopterMovementComponent::GetMaxAdditionalMass() const
+{
+	return PhysicsData.MaxAdditionalMassKg; 
+}
+
 float UHelicopterMovementComponent::GetCurrentCollective() const
 {
 	return CollectiveData.CurrentCollective;
