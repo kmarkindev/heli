@@ -1,6 +1,10 @@
 ﻿#include "HelicopterMovementComponent.h"
 
+// Do not include editor-only dependencies for non editor builds
+#if WITH_EDITOR
 #include "EditorDialogLibrary.h"
+#endif
+
 #include "Heli/LogHeli.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -25,6 +29,8 @@ void UHelicopterMovementComponent::BeginPlay()
 
 void UHelicopterMovementComponent::CalculateForceNeededToStartGoingUp() const
 {
+	// Do not include code that depends on editor-only modules for game builds
+#if WITH_EDITOR
 	const float ActualMass = GetActualMass();
 
 	const float GravityZ = UHeliConversionsLibrary::CmsToMs(GetGravityZ());
@@ -45,6 +51,7 @@ void UHelicopterMovementComponent::CalculateForceNeededToStartGoingUp() const
 		FText::FromString(Result),
 		EAppMsgType::Ok
 	);
+#endif
 }
 
 float UHelicopterMovementComponent::CalculateForceAmountBasedOnCollective() const
